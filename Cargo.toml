@@ -1,0 +1,19 @@
+[package]
+name = "axum-cometd"
+version = "0.1.0"
+edition = "2021"
+
+[workspace]
+members = [
+    "./examples/server"
+]
+
+[dependencies]
+ahash = "0.8.2"
+async-trait = "0.1.58"
+axum = { version = "0.5.17", default-features = false, features = ["http1", "json"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "1.0.37"
+tokio = { version = "1", features = ["macros", "sync"] }
+tower-service = "0.3"
