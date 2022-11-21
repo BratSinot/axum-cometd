@@ -1,0 +1,17 @@
+[
+  {
+    "id": "2",
+    "channel": "/meta/handshake",
+    "successful": true,
+    "clientId": "5804e4865f649fb91645030760db1f358c837af9",
+    "version": "1.0",
+    "supportedConnectionTypes": [
+      "long-polling"
+    ],
+    "advice": {
+      "reconnect": "retry",
+      "timeout": 20000,
+      "interval": 0
+    }
+  }
+]

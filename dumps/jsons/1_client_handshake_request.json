@@ -1,0 +1,16 @@
+[
+  {
+    "id": "2",
+    "version": "1.0",
+    "minimumVersion": "1.0",
+    "channel": "/meta/handshake",
+    "supportedConnectionTypes": [
+      "long-polling",
+      "callback-polling"
+    ],
+    "advice": {
+      "timeout": 60000,
+      "interval": 0
+    }
+  }
+]

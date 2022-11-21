@@ -1,0 +1,14 @@
+[
+  {
+    "channel": "/topic",
+    "data": {
+      "type": "from_server",
+      "message": "Some json"
+    }
+  },
+  {
+    "id": "5",
+    "channel": "/meta/connect",
+    "successful": true
+  }
+]

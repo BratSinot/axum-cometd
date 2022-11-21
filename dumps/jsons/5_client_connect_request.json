@@ -1,0 +1,8 @@
+[
+  {
+    "id": "5",
+    "channel": "/meta/connect",
+    "connectionType": "long-polling",
+    "clientId": "5804e4865f649fb91645030760db1f358c837af9"
+  }
+]

@@ -1,0 +1,15 @@
+{
+  "name": "cometd-client-playground",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "cometd-nodejs-client": "^1.3.0"
+  }
+}

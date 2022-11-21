@@ -1,0 +1,11 @@
+[
+  {
+    "id": "4",
+    "channel": "/meta/connect",
+    "connectionType": "long-polling",
+    "advice": {
+      "timeout": 0
+    },
+    "clientId": "5804e4865f649fb91645030760db1f358c837af9"
+  }
+]
