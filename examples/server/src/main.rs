@@ -1,4 +1,4 @@
-use axum_cometd::LongPoolingServiceContext;
+use axum_cometd::LongPoolingServiceContextBuilder;
 use std::{error::Error, fmt::Debug, time::Duration};
 
 #[derive(Debug, Clone, serde::Serialize)]
@@ -16,7 +16,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let addr = "[::0]:1025".parse()?;
 
-    let context = LongPoolingServiceContext::new();
+    let context = LongPoolingServiceContextBuilder::new()
+        .timeout_ms(1000)
+        .max_interval_ms(2000)
+        .client_channel_capacity(10_000)
+        .subscription_channel_capacity(20_000)
+        .build();
     let app = context.build_router("/notifications/");
 
     tracing::info!("Listen on: `{addr}`.");

@@ -1,4 +1,4 @@
-use crate::{consts::DEFAULT_TIMEOUT_MS, handlers::*, LongPoolingServiceContext};
+use crate::{handlers::*, LongPoolingServiceContext};
 use axum::{routing::post, Extension, Router};
 use serde::Serialize;
 use std::{fmt::Debug, sync::Arc, time::Duration};
@@ -20,6 +20,8 @@ impl<Msg> LongPoolingServiceContext<Msg> {
                     .route("/disconnect", post(disconnect::<Msg>))
                     .layer(Extension(self.clone())),
             )
-            .layer(TimeoutLayer::new(Duration::from_millis(DEFAULT_TIMEOUT_MS)))
+            .layer(TimeoutLayer::new(Duration::from_millis(
+                self.consts.timeout_ms,
+            )))
     }
 }
