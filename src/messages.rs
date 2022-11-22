@@ -1,4 +1,7 @@
-use crate::context::SubscriptionId;
+use crate::{
+    consts::{DEFAULT_INTERVAL_MS, DEFAULT_TIMEOUT_MS},
+    context::SubscriptionId,
+};
 use axum::Json;
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
@@ -17,6 +20,16 @@ pub struct Advice {
 }
 
 impl Advice {
+    #[inline(always)]
+    pub fn retry() -> Self {
+        Self {
+            reconnect: Some(Reconnect::Retry),
+            timeout: Some(DEFAULT_TIMEOUT_MS),
+            interval: Some(DEFAULT_INTERVAL_MS),
+            ..Default::default()
+        }
+    }
+
     #[inline(always)]
     pub fn interval(&self) -> Option<u64> {
         self.interval

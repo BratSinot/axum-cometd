@@ -1,6 +1,5 @@
 use crate::{
-    consts::{DEFAULT_INTERVAL_MS, DEFAULT_TIMEOUT_MS},
-    messages::{Advice, Message, Reconnect},
+    messages::{Advice, Message},
     LongPoolingServiceContext,
 };
 use axum::{Extension, Json};
@@ -63,12 +62,7 @@ where
             client_id: Some(client_id),
             version: Some("1.0".into()),
             supported_connection_types: Some(vec!["long-polling".into()]),
-            advice: Some(Advice {
-                reconnect: Some(Reconnect::Retry),
-                timeout: Some(DEFAULT_TIMEOUT_MS),
-                interval: Some(DEFAULT_INTERVAL_MS),
-                ..Default::default()
-            }),
+            advice: Some(Advice::retry()),
             ..Default::default()
         })
     }?;

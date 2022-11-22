@@ -14,6 +14,7 @@
 mod consts;
 mod context;
 mod error;
+pub mod ext;
 mod handlers;
 mod messages;
 
