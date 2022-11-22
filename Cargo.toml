@@ -2,6 +2,12 @@
 name = "axum-cometd"
 version = "0.1.0"
 edition = "2021"
+license = "Apache-2.0"
+repository = "https://github.com/BratSinot/axum-cometd"
+homepage = "https://github.com/BratSinot/axum-cometd"
+description = "Framework for CometD server creation"
+categories = ["web-programming"]
+keywords = ["http", "cometd", "axum"]
 
 [workspace]
 members = [
