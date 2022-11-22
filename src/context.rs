@@ -7,8 +7,7 @@ use crate::{
     CometdError, CometdResult,
 };
 use ahash::{AHashMap, AHashSet};
-use std::time::Duration;
-use std::{collections::hash_map::Entry, fmt::Debug, sync::Arc};
+use std::{collections::hash_map::Entry, fmt::Debug, sync::Arc, time::Duration};
 use tokio::sync::{broadcast, mpsc, RwLock};
 
 #[derive(Debug)]

@@ -15,7 +15,6 @@ use tokio::{
 
 // TODO: Replace on Arc<str>?
 pub type ClientId = String;
-pub type SubscriptionId = String;
 
 #[derive(Debug)]
 pub struct ClientIdGen(AtomicU64);
