@@ -6,10 +6,10 @@ use crate::{
 use axum::{Extension, Json};
 use serde::Serialize;
 use serde_json::json;
-use std::{fmt::Debug, time::Duration};
+use std::{fmt::Debug, sync::Arc, time::Duration};
 
 pub(crate) async fn connect<Msg>(
-    Extension(context): Extension<LongPoolingServiceContext<Msg>>,
+    Extension(context): Extension<Arc<LongPoolingServiceContext<Msg>>>,
     Json(messages): Json<Vec<Message>>,
 ) -> Result<Json<[Message; 2]>, Json<[Message; 1]>>
 where

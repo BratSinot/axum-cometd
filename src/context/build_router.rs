@@ -1,12 +1,12 @@
 use crate::{consts::DEFAULT_TIMEOUT_MS, handlers::*, LongPoolingServiceContext};
 use axum::{routing::post, Extension, Router};
 use serde::Serialize;
-use std::{fmt::Debug, time::Duration};
+use std::{fmt::Debug, sync::Arc, time::Duration};
 use tower_http::timeout::TimeoutLayer;
 
 impl<Msg> LongPoolingServiceContext<Msg> {
     #[inline]
-    pub fn build_router(&self, base_path: &str) -> Router
+    pub fn build_router(self: &Arc<Self>, base_path: &str) -> Router
     where
         Msg: Debug + Clone + Send + Serialize + 'static,
     {

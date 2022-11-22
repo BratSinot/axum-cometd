@@ -11,26 +11,7 @@ use std::{collections::hash_map::Entry, fmt::Debug, sync::Arc, time::Duration};
 use tokio::sync::{broadcast, mpsc, RwLock};
 
 #[derive(Debug)]
-pub struct LongPoolingServiceContext<Msg>(Arc<InnerLongPoolingServiceContext<Msg>>);
-
-impl<Msg> Clone for LongPoolingServiceContext<Msg> {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
-}
-
-impl<Msg> Default for LongPoolingServiceContext<Msg> {
-    fn default() -> Self {
-        Self(Arc::new(InnerLongPoolingServiceContext {
-            client_ids_by_subscriptions: Default::default(),
-            subscription_channels: Default::default(),
-            client_id_channels: Default::default(),
-        }))
-    }
-}
-
-#[derive(Debug)]
-pub(crate) struct InnerLongPoolingServiceContext<Msg> {
+pub struct LongPoolingServiceContext<Msg> {
     client_ids_by_subscriptions: RwLock<AHashMap<SubscriptionId, AHashSet<ClientId>>>,
     subscription_channels: RwLock<AHashMap<SubscriptionId, mpsc::Sender<Msg>>>,
     client_id_channels: Arc<RwLock<AHashMap<ClientId, ClientSender<Msg>>>>,
@@ -41,13 +22,17 @@ where
     Msg: Debug + Clone + Send + 'static,
 {
     #[inline(always)]
-    pub fn new() -> Self {
-        Self::default()
+    pub fn new() -> Arc<Self> {
+        Arc::new(Self {
+            client_ids_by_subscriptions: Default::default(),
+            subscription_channels: Default::default(),
+            client_id_channels: Default::default(),
+        })
     }
 
     #[inline]
     pub async fn send(&self, topic: &str, msg: Msg) -> Result<(), mpsc::error::SendError<Msg>> {
-        if let Some(tx) = self.0.subscription_channels.read().await.get(topic) {
+        if let Some(tx) = self.subscription_channels.read().await.get(topic) {
             tx.send(msg).await
         } else {
             tracing::trace!(
@@ -59,13 +44,12 @@ where
         }
     }
 
-    pub async fn register(&self) -> ClientId {
+    pub async fn register(self: &Arc<Self>) -> ClientId {
         static CLIENT_ID_GEN: ClientIdGen = ClientIdGen::new();
 
         let client_id = CLIENT_ID_GEN.next();
 
         match self
-            .0
             .client_id_channels
             .write()
             .await
@@ -93,14 +77,12 @@ where
         client_id
     }
 
-    pub async fn subscribe(&self, client_id: &ClientId, subscription: &str) -> CometdResult<()> {
-        if !self
-            .0
-            .client_id_channels
-            .read()
-            .await
-            .contains_key(client_id)
-        {
+    pub async fn subscribe(
+        self: &Arc<Self>,
+        client_id: &ClientId,
+        subscription: &str,
+    ) -> CometdResult<()> {
+        if !self.client_id_channels.read().await.contains_key(client_id) {
             tracing::error!(
                 client_id = client_id,
                 "Non-existing client with clientId {client_id}."
@@ -109,16 +91,14 @@ where
         }
 
         if let Entry::Vacant(v) = self
-            .0
             .subscription_channels
             .write()
             .await
             .entry(subscription.to_string())
         {
             let (tx, rx) = mpsc::channel::<Msg>(DEFAULT_CHANNEL_CAPACITY);
-            let inner = self.0.clone();
 
-            subscription_task::spawn(subscription.to_string(), rx, inner);
+            subscription_task::spawn(subscription.to_string(), rx, self.clone());
             v.insert(tx);
 
             tracing::info!(
@@ -127,8 +107,7 @@ where
             );
         };
 
-        self.0
-            .client_ids_by_subscriptions
+        self.client_ids_by_subscriptions
             .write()
             .await
             .entry(subscription.to_string())
@@ -147,9 +126,9 @@ where
     // TODO: Spawn task and send unsubscribe command through channel.
     pub async fn unsubscribe(&self, client_id: &str) {
         let (mut client_ids_by_subscriptions, mut subscription_channels, mut client_id_channels) = tokio::join!(
-            self.0.client_ids_by_subscriptions.write(),
-            self.0.subscription_channels.write(),
-            self.0.client_id_channels.write()
+            self.client_ids_by_subscriptions.write(),
+            self.subscription_channels.write(),
+            self.client_id_channels.write()
         );
 
         client_ids_by_subscriptions.retain(|subscription, client_ids| {
@@ -192,7 +171,6 @@ where
         client_id: &str,
     ) -> CometdResult<ClientReceiver<Msg>> {
         let rx = self
-            .0
             .client_id_channels
             .read()
             .await
