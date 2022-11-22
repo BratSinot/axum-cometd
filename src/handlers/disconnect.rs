@@ -1,9 +1,9 @@
 use crate::{messages::Message, LongPoolingServiceContext};
 use axum::{http::StatusCode, Extension, Json};
-use std::fmt::Debug;
+use std::{fmt::Debug, sync::Arc};
 
 pub(crate) async fn disconnect<Msg>(
-    Extension(context): Extension<LongPoolingServiceContext<Msg>>,
+    Extension(context): Extension<Arc<LongPoolingServiceContext<Msg>>>,
     Json(messages): Json<Vec<Message>>,
 ) -> Result<Json<[Message; 1]>, StatusCode>
 where

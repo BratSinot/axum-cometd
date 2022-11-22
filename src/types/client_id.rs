@@ -43,7 +43,7 @@ pub(crate) struct ClientSender<Msg> {
 impl<Msg> ClientSender<Msg> {
     #[inline]
     pub fn create(
-        context: LongPoolingServiceContext<Msg>,
+        context: Arc<LongPoolingServiceContext<Msg>>,
         client_id: ClientId,
         timeout: Duration,
         tx: broadcast::Sender<SubscriptionMessage<Msg>>,

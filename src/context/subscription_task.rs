@@ -1,11 +1,11 @@
-use crate::{context::InnerLongPoolingServiceContext, messages::SubscriptionMessage};
+use crate::{context::LongPoolingServiceContext, messages::SubscriptionMessage};
 use std::{fmt::Debug, sync::Arc};
 use tokio::sync::mpsc;
 
 pub(crate) fn spawn<Msg>(
     subscription: String,
     mut rx: mpsc::Receiver<Msg>,
-    inner: Arc<InnerLongPoolingServiceContext<Msg>>,
+    inner: Arc<LongPoolingServiceContext<Msg>>,
 ) where
     Msg: Debug + Clone + Send + 'static,
 {
