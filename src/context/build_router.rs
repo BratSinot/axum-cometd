@@ -4,6 +4,7 @@ use serde::Serialize;
 use std::fmt::Debug;
 
 impl<Msg> LongPoolingServiceContext<Msg> {
+    #[inline]
     pub fn build_router(&self, base_path: &str) -> Router
     where
         Msg: Debug + Clone + Send + Serialize + 'static,

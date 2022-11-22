@@ -21,6 +21,7 @@ impl ClientIdGen {
         Self(AtomicU64::new(0))
     }
 
+    #[inline(always)]
     pub fn next(&self) -> ClientId {
         self.0.fetch_add(1, Ordering::Relaxed).to_string()
     }
@@ -61,10 +62,12 @@ impl<Msg> LongPoolingServiceContext<Msg>
 where
     Msg: Clone + Send + 'static,
 {
+    #[inline(always)]
     pub fn new() -> Self {
         Self::default()
     }
 
+    #[inline]
     pub async fn send(&self, topic: &str, msg: Msg) -> Result<(), mpsc::error::SendError<Msg>> {
         if let Some(tx) = self.0.subscription_channels.read().await.get(topic) {
             tx.send(msg).await
@@ -175,6 +178,7 @@ where
         client_id_channels.remove(client_id);
     }
 
+    #[inline]
     pub(crate) async fn get_client_receiver(
         &self,
         client_id: &str,

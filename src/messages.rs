@@ -61,6 +61,7 @@ pub(crate) struct SubscriptionMessage<Msg> {
 }
 
 impl Message {
+    #[inline]
     pub fn error<Str: Into<String>>(
         message: Str,
         channel: Option<String>,
@@ -83,6 +84,7 @@ impl Message {
 }
 
 impl From<Message> for Json<[Message; 1]> {
+    #[inline(always)]
     fn from(message: Message) -> Self {
         Json([message])
     }
