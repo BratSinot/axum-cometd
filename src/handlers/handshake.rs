@@ -39,13 +39,13 @@ where
             None,
             id,
         ))
-    } else if supported_connection_types
+    } else if !supported_connection_types
         .iter()
         .flatten()
         .any(|connection_type| connection_type == "long-polling")
     {
         Err(Message::error(
-            "unsupported connection-type",
+            "unsupported connectionType",
             channel,
             None,
             id,
