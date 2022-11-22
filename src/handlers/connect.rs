@@ -1,5 +1,4 @@
 use crate::{
-    consts::DEFAULT_TIMEOUT_MS,
     messages::{Advice, Message, SubscriptionMessage},
     LongPoolingServiceContext,
 };
@@ -42,7 +41,7 @@ where
         .ok_or_else(|| Message::error("empty clientId", channel.clone(), None, id.clone()))?;
     let timeout = advice
         .and_then(|advice| advice.timeout)
-        .unwrap_or(DEFAULT_TIMEOUT_MS);
+        .unwrap_or(context.consts.timeout_ms);
 
     let mut rx = context
         .get_client_receiver(&client_id)
@@ -63,7 +62,10 @@ where
             id: id.clone(),
             channel: channel.clone(),
             successful: Some(true),
-            advice: Some(Advice::retry()),
+            advice: Some(Advice::retry(
+                context.consts.timeout_ms,
+                context.consts.interval_ms,
+            )),
             ..Default::default()
         })?
         .ok_or_else(|| {

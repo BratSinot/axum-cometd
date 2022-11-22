@@ -1,8 +1,10 @@
 mod build_router;
+mod builder;
 mod subscription_task;
 
+pub use builder::*;
+
 use crate::{
-    consts::{DEFAULT_CHANNEL_CAPACITY, DEFAULT_MAX_INTERVAL_MS},
     types::{ClientId, ClientIdGen, ClientReceiver, ClientSender, SubscriptionId},
     CometdError, CometdResult,
 };
@@ -12,6 +14,7 @@ use tokio::sync::{broadcast, mpsc, RwLock};
 
 #[derive(Debug)]
 pub struct LongPoolingServiceContext<Msg> {
+    pub(crate) consts: LongPoolingServiceContextConsts,
     client_ids_by_subscriptions: RwLock<AHashMap<SubscriptionId, AHashSet<ClientId>>>,
     subscription_channels: RwLock<AHashMap<SubscriptionId, mpsc::Sender<Msg>>>,
     client_id_channels: Arc<RwLock<AHashMap<ClientId, ClientSender<Msg>>>>,
@@ -22,12 +25,8 @@ where
     Msg: Debug + Clone + Send + 'static,
 {
     #[inline(always)]
-    pub fn new() -> Arc<Self> {
-        Arc::new(Self {
-            client_ids_by_subscriptions: Default::default(),
-            subscription_channels: Default::default(),
-            client_id_channels: Default::default(),
-        })
+    pub fn builder() -> LongPoolingServiceContextBuilder {
+        Default::default()
     }
 
     #[inline]
@@ -59,11 +58,11 @@ where
                 unreachable!("impossible")
             }
             Entry::Vacant(v) => {
-                let (tx, _rx) = broadcast::channel(DEFAULT_CHANNEL_CAPACITY);
+                let (tx, _rx) = broadcast::channel(self.consts.client_channel_capacity);
                 v.insert(ClientSender::create(
                     self.clone(),
                     client_id.clone(),
-                    Duration::from_millis(DEFAULT_MAX_INTERVAL_MS),
+                    Duration::from_millis(self.consts.max_interval_ms),
                     tx,
                 ));
             }
@@ -96,7 +95,7 @@ where
             .await
             .entry(subscription.to_string())
         {
-            let (tx, rx) = mpsc::channel::<Msg>(DEFAULT_CHANNEL_CAPACITY);
+            let (tx, rx) = mpsc::channel::<Msg>(self.consts.subscription_channel_capacity);
 
             subscription_task::spawn(subscription.to_string(), rx, self.clone());
             v.insert(tx);

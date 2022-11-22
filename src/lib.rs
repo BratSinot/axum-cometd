@@ -11,7 +11,6 @@
     clippy::if_let_mutex
 )]
 
-mod consts;
 mod context;
 mod error;
 mod handlers;
