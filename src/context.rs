@@ -1,6 +1,8 @@
 mod build_router;
 
-use crate::{messages::SubscriptionMessage, CometdError, CometdResult};
+use crate::{
+    consts::DEFAULT_CHANNEL_CAPACITY, messages::SubscriptionMessage, CometdError, CometdResult,
+};
 use ahash::{AHashMap, AHashSet};
 use std::{
     collections::hash_map::Entry,
@@ -93,7 +95,7 @@ where
                 unreachable!("impossible")
             }
             Entry::Vacant(v) => {
-                let (tx, _rx) = broadcast::channel(1_000_000);
+                let (tx, _rx) = broadcast::channel(DEFAULT_CHANNEL_CAPACITY);
                 v.insert(tx);
             }
         }
@@ -119,7 +121,7 @@ where
             .await
             .entry(subscription.clone())
         {
-            let (tx, mut rx) = mpsc::channel::<Msg>(1_000_000);
+            let (tx, mut rx) = mpsc::channel::<Msg>(DEFAULT_CHANNEL_CAPACITY);
             let inner = self.0.clone();
 
             let subscription = subscription.clone();
