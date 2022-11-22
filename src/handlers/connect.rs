@@ -1,13 +1,12 @@
 use crate::{
-    consts::{DEFAULT_INTERVAL_MS, DEFAULT_TIMEOUT_MS},
-    messages::{Advice, Message, Reconnect, SubscriptionMessage},
+    consts::DEFAULT_TIMEOUT_MS,
+    messages::{Advice, Message, SubscriptionMessage},
     LongPoolingServiceContext,
 };
 use axum::{Extension, Json};
 use serde::Serialize;
 use serde_json::json;
 use std::{fmt::Debug, time::Duration};
-use tokio::{sync::broadcast::error::RecvError, time};
 
 pub(crate) async fn connect<Msg>(
     Extension(context): Extension<LongPoolingServiceContext<Msg>>,
@@ -44,6 +43,7 @@ where
     let timeout = advice
         .and_then(|advice| advice.timeout)
         .unwrap_or(DEFAULT_TIMEOUT_MS);
+
     let mut rx = context
         .get_client_receiver(&client_id)
         .await
@@ -56,36 +56,24 @@ where
             )
         })?;
 
-    let SubscriptionMessage { subscription, msg } =
-        time::timeout(Duration::from_millis(timeout), async {
-            loop {
-                match rx.recv().await {
-                    Err(RecvError::Lagged(_)) => continue,
-                    Err(RecvError::Closed) => {
-                        break Err(Message::error(
-                            "channel was closed",
-                            channel.clone(),
-                            Some(client_id.clone()),
-                            id.clone(),
-                        ))
-                    }
-                    Ok(msg) => break Ok(msg),
-                }
-            }
-        })
+    let SubscriptionMessage { subscription, msg } = rx
+        .recv_timeout(Duration::from_millis(timeout))
         .await
         .map_err(|_| Message {
             id: id.clone(),
             channel: channel.clone(),
             successful: Some(true),
-            advice: Some(Advice {
-                reconnect: Some(Reconnect::Retry),
-                timeout: Some(DEFAULT_TIMEOUT_MS),
-                interval: Some(DEFAULT_INTERVAL_MS),
-                ..Default::default()
-            }),
+            advice: Some(Advice::retry()),
             ..Default::default()
-        })??;
+        })?
+        .ok_or_else(|| {
+            Message::error(
+                "channel was closed",
+                channel.clone(),
+                Some(client_id.clone()),
+                id.clone(),
+            )
+        })?;
 
     Ok(Json([
         Message {

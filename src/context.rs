@@ -1,37 +1,14 @@
 mod build_router;
 
 use crate::{
-    consts::DEFAULT_CHANNEL_CAPACITY, messages::SubscriptionMessage, CometdError, CometdResult,
+    consts::{DEFAULT_CHANNEL_CAPACITY, DEFAULT_MAX_INTERVAL_MS},
+    messages::SubscriptionMessage,
+    types::{ClientId, ClientIdGen, ClientReceiver, ClientSender, SubscriptionId},
+    CometdError, CometdResult,
 };
 use ahash::{AHashMap, AHashSet};
-use std::{
-    collections::hash_map::Entry,
-    fmt::Debug,
-    sync::{
-        atomic::{AtomicU64, Ordering},
-        Arc,
-    },
-};
+use std::{collections::hash_map::Entry, fmt::Debug, sync::Arc, time::Duration};
 use tokio::sync::{broadcast, mpsc, RwLock};
-
-#[derive(Debug)]
-pub struct ClientIdGen(AtomicU64);
-
-impl ClientIdGen {
-    #[inline(always)]
-    pub const fn new() -> Self {
-        Self(AtomicU64::new(0))
-    }
-
-    #[inline(always)]
-    pub fn next(&self) -> ClientId {
-        self.0.fetch_add(1, Ordering::Relaxed).to_string()
-    }
-}
-
-// TODO: Replace on Arc<str>?
-pub type ClientId = String;
-pub type SubscriptionId = String;
 
 #[derive(Debug)]
 pub struct LongPoolingServiceContext<Msg>(Arc<InnerLongPoolingServiceContext<Msg>>);
@@ -56,8 +33,7 @@ impl<Msg> Default for LongPoolingServiceContext<Msg> {
 struct InnerLongPoolingServiceContext<Msg> {
     client_ids_by_subscriptions: RwLock<AHashMap<SubscriptionId, AHashSet<ClientId>>>,
     subscription_channels: RwLock<AHashMap<SubscriptionId, mpsc::Sender<Msg>>>,
-    client_id_channels:
-        Arc<RwLock<AHashMap<ClientId, broadcast::Sender<SubscriptionMessage<Msg>>>>>,
+    client_id_channels: Arc<RwLock<AHashMap<ClientId, ClientSender<Msg>>>>,
 }
 
 impl<Msg> LongPoolingServiceContext<Msg>
@@ -96,7 +72,12 @@ where
             }
             Entry::Vacant(v) => {
                 let (tx, _rx) = broadcast::channel(DEFAULT_CHANNEL_CAPACITY);
-                v.insert(tx);
+                v.insert(ClientSender::create(
+                    self.clone(),
+                    client_id.clone(),
+                    Duration::from_millis(DEFAULT_MAX_INTERVAL_MS),
+                    tx,
+                ));
             }
         }
 
@@ -184,7 +165,7 @@ where
     pub(crate) async fn get_client_receiver(
         &self,
         client_id: &str,
-    ) -> CometdResult<broadcast::Receiver<SubscriptionMessage<Msg>>> {
+    ) -> CometdResult<ClientReceiver<Msg>> {
         let rx = self
             .0
             .client_id_channels
