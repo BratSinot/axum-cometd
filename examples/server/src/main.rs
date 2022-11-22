@@ -10,12 +10,16 @@ struct Data {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
+    tracing_subscriber::fmt()
+        .with_env_filter("axum_cometd=trace")
+        .init();
+
     let addr = "[::0]:1025".parse()?;
 
     let context = LongPoolingServiceContext::new();
     let app = context.build_router("/notifications/");
 
-    println!("Listen on: `{addr}`.");
+    tracing::info!("Listen on: `{addr}`.");
 
     tokio::task::spawn(axum::Server::bind(&addr).serve(app.into_make_service()));
 

@@ -15,7 +15,7 @@ pub(crate) async fn connect<Msg>(
 where
     Msg: Debug + Clone + Serialize + Send + 'static,
 {
-    println!("connect: `{messages:?}`.");
+    tracing::info!("Got connect request: `{messages:?}`.");
 
     let Message {
         id,

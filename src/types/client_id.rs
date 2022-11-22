@@ -1,6 +1,6 @@
-use crate::messages::SubscriptionMessage;
-use crate::LongPoolingServiceContext;
+use crate::{messages::SubscriptionMessage, LongPoolingServiceContext};
 use std::{
+    fmt::Debug,
     sync::{
         atomic::{AtomicU64, Ordering},
         Arc,
@@ -12,6 +12,7 @@ use tokio::{
     sync::{broadcast, Notify},
     time,
 };
+use tokio_util::sync::CancellationToken;
 
 // TODO: Replace on Arc<str>?
 pub type ClientId = String;
@@ -33,6 +34,7 @@ impl ClientIdGen {
 
 #[derive(Debug)]
 pub(crate) struct ClientSender<Msg> {
+    stop_signal: CancellationToken,
     start_timeout: Arc<Notify>,
     cancel_timeout: Arc<Notify>,
     tx: broadcast::Sender<SubscriptionMessage<Msg>>,
@@ -47,20 +49,30 @@ impl<Msg> ClientSender<Msg> {
         tx: broadcast::Sender<SubscriptionMessage<Msg>>,
     ) -> Self
     where
-        Msg: Clone + Send + 'static,
+        Msg: Debug + Clone + Send + 'static,
     {
+        let stop_signal = CancellationToken::new();
         let start_timeout = Arc::new(Notify::new());
         let cancel_timeout = Arc::new(Notify::new());
 
         tokio::task::spawn({
+            let stop_signal = stop_signal.clone();
             let start_timeout = start_timeout.clone();
             let cancel_timeout = cancel_timeout.clone();
             async move {
                 loop {
-                    start_timeout.notified().await;
+                    select! {
+                        _ = start_timeout.notified() => {},
+                        _ = stop_signal.cancelled() => break,
+                    }
 
                     select! {
+                        _ = stop_signal.cancelled() => break,
                         _ = time::sleep(timeout) => {
+                            tracing::info!(
+                                client_id = client_id,
+                                "Client `{client_id}` timeout."
+                            );
                             context.unsubscribe(&client_id).await;
                             break;
                         }
@@ -73,6 +85,7 @@ impl<Msg> ClientSender<Msg> {
         start_timeout.notify_waiters();
 
         Self {
+            stop_signal,
             start_timeout,
             cancel_timeout,
             tx,
@@ -95,6 +108,12 @@ impl<Msg> ClientSender<Msg> {
         msg: SubscriptionMessage<Msg>,
     ) -> Result<usize, broadcast::error::SendError<SubscriptionMessage<Msg>>> {
         self.tx.send(msg)
+    }
+}
+
+impl<Msg> Drop for ClientSender<Msg> {
+    fn drop(&mut self) {
+        self.stop_signal.cancel();
     }
 }
 
