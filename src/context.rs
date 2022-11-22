@@ -1,8 +1,8 @@
 mod build_router;
+mod subscription_task;
 
 use crate::{
     consts::{DEFAULT_CHANNEL_CAPACITY, DEFAULT_MAX_INTERVAL_MS},
-    messages::SubscriptionMessage,
     types::{ClientId, ClientIdGen, ClientReceiver, ClientSender, SubscriptionId},
     CometdError, CometdResult,
 };
@@ -30,7 +30,7 @@ impl<Msg> Default for LongPoolingServiceContext<Msg> {
 }
 
 #[derive(Debug)]
-struct InnerLongPoolingServiceContext<Msg> {
+pub(crate) struct InnerLongPoolingServiceContext<Msg> {
     client_ids_by_subscriptions: RwLock<AHashMap<SubscriptionId, AHashSet<ClientId>>>,
     subscription_channels: RwLock<AHashMap<SubscriptionId, mpsc::Sender<Msg>>>,
     client_id_channels: Arc<RwLock<AHashMap<ClientId, ClientSender<Msg>>>>,
@@ -38,7 +38,7 @@ struct InnerLongPoolingServiceContext<Msg> {
 
 impl<Msg> LongPoolingServiceContext<Msg>
 where
-    Msg: Clone + Send + 'static,
+    Msg: Debug + Clone + Send + 'static,
 {
     #[inline(always)]
     pub fn new() -> Self {
@@ -50,7 +50,11 @@ where
         if let Some(tx) = self.0.subscription_channels.read().await.get(topic) {
             tx.send(msg).await
         } else {
-            println!("No {topic} channel was found.");
+            tracing::trace!(
+                topic = topic,
+                "No `{topic}` channel was found for message: `{msg:?}`."
+            );
+
             Ok(())
         }
     }
@@ -81,10 +85,15 @@ where
             }
         }
 
+        tracing::info!(
+            client_id = client_id,
+            "New client was registered with clientId {client_id}."
+        );
+
         client_id
     }
 
-    pub async fn subscribe(&self, client_id: &ClientId, subscription: String) -> CometdResult<()> {
+    pub async fn subscribe(&self, client_id: &ClientId, subscription: &str) -> CometdResult<()> {
         if !self
             .0
             .client_id_channels
@@ -92,6 +101,10 @@ where
             .await
             .contains_key(client_id)
         {
+            tracing::error!(
+                client_id = client_id,
+                "Non-existing client with clientId {client_id}."
+            );
             return Err(CometdError::ClientDoesntExist(client_id.clone()));
         }
 
@@ -100,42 +113,33 @@ where
             .subscription_channels
             .write()
             .await
-            .entry(subscription.clone())
+            .entry(subscription.to_string())
         {
-            let (tx, mut rx) = mpsc::channel::<Msg>(DEFAULT_CHANNEL_CAPACITY);
+            let (tx, rx) = mpsc::channel::<Msg>(DEFAULT_CHANNEL_CAPACITY);
             let inner = self.0.clone();
 
-            let subscription = subscription.clone();
-            tokio::task::spawn(async move {
-                while let Some(msg) = rx.recv().await {
-                    let client_id_channels = inner.client_id_channels.read().await;
-
-                    for client_channel in inner
-                        .client_ids_by_subscriptions
-                        .read()
-                        .await
-                        .get(&subscription)
-                        .into_iter()
-                        .flatten()
-                        .filter_map(|client_id| client_id_channels.get(client_id))
-                    {
-                        let _todo = client_channel.send(SubscriptionMessage {
-                            subscription: subscription.clone(),
-                            msg: msg.clone(),
-                        });
-                    }
-                }
-            });
+            subscription_task::spawn(subscription.to_string(), rx, inner);
             v.insert(tx);
+
+            tracing::info!(
+                subscription = subscription,
+                "New subscription ({subscription}) channel was registered."
+            );
         };
 
         self.0
             .client_ids_by_subscriptions
             .write()
             .await
-            .entry(subscription)
+            .entry(subscription.to_string())
             .or_default()
             .insert(client_id.clone());
+
+        tracing::info!(
+            client_id = client_id,
+            subscription = subscription,
+            "Client with clientId `{client_id}` subscribe on `{subscription}` channel."
+        );
 
         Ok(())
     }
@@ -149,16 +153,37 @@ where
         );
 
         client_ids_by_subscriptions.retain(|subscription, client_ids| {
-            client_ids.remove(client_id);
+            if client_ids.remove(client_id) {
+                tracing::info!(
+                    client_id = client_id,
+                    subscription = subscription,
+                    "Client `{client_id}` was unsubscribed from channel `{subscription}."
+                );
+            }
+
             if client_ids.is_empty() {
                 subscription_channels.remove(subscription);
                 false
             } else {
+                tracing::info!(
+                    subscription = subscription,
+                    "Channel `{subscription}` have no active subscriber. Eliminate channel."
+                );
                 true
             }
         });
 
-        client_id_channels.remove(client_id);
+        if client_id_channels.remove(client_id).is_some() {
+            tracing::info!(
+                client_id = client_id,
+                "Client `{client_id}` was unsubscribed."
+            );
+        } else {
+            tracing::warn!(
+                client_id = client_id,
+                "Can't find client `{client_id}`. Can't unsubscribed."
+            );
+        }
     }
 
     #[inline]

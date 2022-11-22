@@ -1,14 +1,15 @@
 use crate::{messages::Message, LongPoolingServiceContext};
 use axum::{http::StatusCode, Extension, Json};
+use std::fmt::Debug;
 
 pub(crate) async fn disconnect<Msg>(
     Extension(context): Extension<LongPoolingServiceContext<Msg>>,
     Json(messages): Json<Vec<Message>>,
 ) -> Result<Json<[Message; 1]>, StatusCode>
 where
-    Msg: Clone + Send + 'static,
+    Msg: Debug + Clone + Send + 'static,
 {
-    println!("disconnect: `{messages:?}`.");
+    tracing::info!("Got disconnect request: `{messages:?}`.");
 
     let ret = if let Some(message) = messages
         .into_iter()

@@ -14,9 +14,10 @@
 mod consts;
 mod context;
 mod error;
-pub mod ext;
 mod handlers;
 mod messages;
 mod types;
+
+pub mod ext;
 
 pub use {context::*, error::*, types::*};

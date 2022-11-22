@@ -52,18 +52,19 @@ pub struct Message {
     pub client_id: Option<String>,
     #[serde(rename = "connectionType")]
     pub connection_type: Option<String>,
+    // TODO: Replace on Msg generic?
     pub data: Option<JsonValue>,
     pub error: Option<String>,
-    pub ext: Option<serde_json::Value>,
+    //pub ext: Option<JsonValue>,
     pub id: Option<String>,
     #[serde(rename = "minimumVersion")]
     pub minimum_version: Option<String>,
-    pub reestablish: Option<bool>,
+    //pub reestablish: Option<bool>,
     pub subscription: Option<String>,
     pub successful: Option<bool>,
     #[serde(rename = "supportedConnectionTypes")]
     pub supported_connection_types: Option<Vec<String>>,
-    pub timestamp: Option<String>,
+    //pub timestamp: Option<String>,
     pub version: Option<String>,
 }
 

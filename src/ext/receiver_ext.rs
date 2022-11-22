@@ -21,7 +21,10 @@ where
         loop {
             match self.recv().await {
                 Ok(data) => break Some(data),
-                Err(broadcast::error::RecvError::Lagged(_)) => continue,
+                Err(broadcast::error::RecvError::Lagged(num)) => {
+                    tracing::warn!("RecvError::Laged({num})");
+                    continue;
+                }
                 Err(broadcast::error::RecvError::Closed) => break None,
             }
         }

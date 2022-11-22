@@ -3,15 +3,16 @@ use crate::{
     LongPoolingServiceContext,
 };
 use axum::{Extension, Json};
+use std::fmt::Debug;
 
 pub(crate) async fn handshake<Msg>(
     Extension(context): Extension<LongPoolingServiceContext<Msg>>,
     Json(messages): Json<Vec<Message>>,
 ) -> Result<Json<[Message; 1]>, Json<[Message; 1]>>
 where
-    Msg: Clone + Send + 'static,
+    Msg: Debug + Clone + Send + 'static,
 {
-    println!("handshake: `{messages:?}`.");
+    tracing::info!("Got handshake request: `{messages:?}`.");
 
     let Message {
         advice,

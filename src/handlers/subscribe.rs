@@ -1,14 +1,15 @@
 use crate::{messages::Message, LongPoolingServiceContext};
 use axum::{Extension, Json};
+use std::fmt::Debug;
 
 pub(crate) async fn subscribe<Msg>(
     Extension(context): Extension<LongPoolingServiceContext<Msg>>,
     Json(messages): Json<Vec<Message>>,
 ) -> Result<Json<[Message; 1]>, Json<[Message; 1]>>
 where
-    Msg: Clone + Send + 'static,
+    Msg: Debug + Clone + Send + 'static,
 {
-    println!("subscribe: `{messages:?}`.");
+    tracing::info!("Got subscribe request: `{messages:?}`.");
 
     let Message {
         id,
@@ -40,7 +41,7 @@ where
         .ok_or_else(|| Message::error("empty clientId", channel.clone(), None, id.clone()))?;
 
     context
-        .subscribe(&client_id, subscription.clone())
+        .subscribe(&client_id, &subscription)
         .await
         .map_err(|error| {
             Message::error(

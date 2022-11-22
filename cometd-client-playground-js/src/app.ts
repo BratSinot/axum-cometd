@@ -20,7 +20,7 @@ cometd.handshake(function (message: Message) {
 
         // Subscribe to receive messages from the server.
         cometd.subscribe('/topic', function (message: Message) {
-            console.log("Got subscribe message: `", json(message), "`.");
+            console.log("Got message: `", json(message), "`.");
 
             /*cometd.disconnect(function (message: Message) {
                 console.log("Got disconnect message: `", json(message), "`.");
