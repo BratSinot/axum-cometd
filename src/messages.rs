@@ -1,6 +1,6 @@
 use crate::{
     consts::{DEFAULT_INTERVAL_MS, DEFAULT_TIMEOUT_MS},
-    context::SubscriptionId,
+    types::SubscriptionId,
 };
 use axum::Json;
 use serde::{Deserialize, Serialize};

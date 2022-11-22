@@ -1,7 +1,6 @@
-use crate::ext::ReceiverExt;
 use crate::{
-    consts::{DEFAULT_INTERVAL_MS, DEFAULT_TIMEOUT_MS},
-    messages::{Advice, Message, Reconnect, SubscriptionMessage},
+    consts::DEFAULT_TIMEOUT_MS,
+    messages::{Advice, Message, SubscriptionMessage},
     LongPoolingServiceContext,
 };
 use axum::{Extension, Json};
@@ -45,7 +44,7 @@ where
         .and_then(|advice| advice.timeout)
         .unwrap_or(DEFAULT_TIMEOUT_MS);
 
-    let SubscriptionMessage { subscription, msg } = context
+    let mut rx = context
         .get_client_receiver(&client_id)
         .await
         .map_err(|error| {
@@ -55,8 +54,10 @@ where
                 Some(client_id.clone()),
                 id.clone(),
             )
-        })?
-        .recv_ignore_lagged_timeout(Duration::from_millis(timeout))
+        })?;
+
+    let SubscriptionMessage { subscription, msg } = rx
+        .recv_timeout(Duration::from_millis(timeout))
         .await
         .map_err(|_| Message {
             id: id.clone(),

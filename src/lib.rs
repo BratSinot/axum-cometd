@@ -17,5 +17,6 @@ mod error;
 pub mod ext;
 mod handlers;
 mod messages;
+mod types;
 
-pub use {context::*, error::*};
+pub use {context::*, error::*, types::*};
