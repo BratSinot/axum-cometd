@@ -1,9 +1,9 @@
-use axum_cometd::LongPoolingServiceContextBuilder;
-use std::{error::Error, fmt::Debug, time::Duration};
+use axum_cometd::{LongPoolingServiceContextBuilder, RouterBuilder};
+use std::{borrow::Cow, error::Error, fmt::Debug, time::Duration};
 
 #[derive(Debug, Clone, serde::Serialize)]
-struct Data {
-    msg: Box<str>,
+struct Data<'a> {
+    msg: Cow<'a, str>,
     r#bool: bool,
     num: u64,
 }
@@ -22,7 +22,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .client_channel_capacity(10_000)
         .subscription_channel_capacity(20_000)
         .build();
-    let app = context.build_router("/notifications/");
+    let app = RouterBuilder::new()
+        .base_path("/notifications/")
+        .build(&context);
 
     tracing::info!("Listen on: `{addr}`.");
 

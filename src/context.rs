@@ -2,6 +2,7 @@ mod build_router;
 mod builder;
 mod subscription_task;
 
+pub use build_router::*;
 pub use builder::*;
 
 use crate::{
