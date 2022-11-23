@@ -28,7 +28,7 @@ impl Default for RouterBuilder {
 }
 
 impl RouterBuilder {
-    /// Construct a new RouterBuilder.
+    /// Construct a new `RouterBuilder`.
     #[inline(always)]
     pub fn new() -> Self {
         Self::default()

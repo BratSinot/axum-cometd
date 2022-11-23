@@ -8,6 +8,7 @@ const DEFAULT_INTERVAL_MS: u64 = 0;
 const DEFAULT_MAX_INTERVAL_MS: u64 = 60_000;
 const DEFAULT_CHANNEL_CAPACITY: usize = 1_000_000;
 
+/// A builder to construct `LongPoolingServiceContext`.
 #[derive(Debug, Default)]
 pub struct LongPoolingServiceContextBuilder {
     subscriptions_capacity: usize,
@@ -38,11 +39,19 @@ impl Default for LongPoolingServiceContextConsts {
 }
 
 impl LongPoolingServiceContextBuilder {
+    /// Construct a new `LongPoolingServiceContextBuilder`.
     #[inline(always)]
     pub fn new() -> Self {
         Self::default()
     }
 
+    /// Return a `LongPoolingServiceContextBuilder`.
+    ///
+    /// # Example
+    /// ```rust
+    /// use axum_cometd::LongPoolingServiceContextBuilder;
+    /// let app = LongPoolingServiceContextBuilder::new().build();
+    /// ```
     #[inline(always)]
     pub fn build<Msg>(self) -> Arc<LongPoolingServiceContext<Msg>> {
         let Self {
@@ -61,6 +70,7 @@ impl LongPoolingServiceContextBuilder {
         })
     }
 
+    /// Set message wait timeout in milliseconds.
     #[inline(always)]
     pub fn timeout_ms(self, timeout_ms: u64) -> Self {
         Self {
@@ -72,6 +82,7 @@ impl LongPoolingServiceContextBuilder {
         }
     }
 
+    /// Set timeout in milliseconds, that the client must wait between two connects.
     #[inline(always)]
     pub fn interval_ms(self, _interval_ms: u64) -> Self {
         unimplemented!()
@@ -84,6 +95,7 @@ impl LongPoolingServiceContextBuilder {
         }*/
     }
 
+    /// Set timeout in milliseconds, which server wait between erase clientId.
     #[inline(always)]
     pub fn max_interval_ms(self, max_interval_ms: u64) -> Self {
         Self {
@@ -95,6 +107,7 @@ impl LongPoolingServiceContextBuilder {
         }
     }
 
+    /// Set internal-channel capacity for clientId channel.
     #[inline(always)]
     pub fn client_channel_capacity(self, client_channel_capacity: usize) -> Self {
         Self {
@@ -106,6 +119,7 @@ impl LongPoolingServiceContextBuilder {
         }
     }
 
+    /// Set internal-channel capacity for subscription channel.
     #[inline(always)]
     pub fn subscription_channel_capacity(self, subscription_channel_capacity: usize) -> Self {
         Self {
