@@ -2,8 +2,10 @@ use crate::types::SubscriptionId;
 use axum::Json;
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
+use serde_with::skip_serializing_none;
 use std::fmt::Debug;
 
+#[skip_serializing_none]
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct Advice {
     pub interval: Option<u64>,
@@ -41,6 +43,7 @@ pub enum Reconnect {
     None,
 }
 
+#[skip_serializing_none]
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct Message {
     pub advice: Option<Advice>,
