@@ -2,6 +2,7 @@
 #![warn(
     rust_2018_idioms,
     rust_2021_compatibility,
+    missing_docs,
     missing_debug_implementations,
     clippy::expect_used,
     clippy::missing_panics_doc,
@@ -11,12 +12,16 @@
     clippy::if_let_mutex
 )]
 
+//! This crate aims to make ability to use CometD protocol in servers written in Rust.
+//!
+//! This project is in progress and might change a lot from version to version.
+//!
+
 mod context;
 mod error;
+mod ext;
 mod handlers;
 mod messages;
 mod types;
 
-pub mod ext;
-
-pub use {context::*, error::*, types::*};
+pub use {context::*, error::*, ext::*, types::*};
