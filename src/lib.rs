@@ -17,6 +17,5 @@ mod handlers;
 mod messages;
 mod types;
 
-pub mod ext;
-
-pub use {context::*, error::*, types::*};
+pub(crate) use types::*;
+pub use {context::*, error::*};
