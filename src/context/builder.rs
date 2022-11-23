@@ -50,7 +50,9 @@ impl LongPoolingServiceContextBuilder {
     /// # Example
     /// ```rust
     /// use axum_cometd::LongPoolingServiceContextBuilder;
-    /// let app = LongPoolingServiceContextBuilder::new().build();
+    ///
+    /// let context = LongPoolingServiceContextBuilder::new().build();
+    /// # let app = axum_cometd::RouterBuilder::new().build::<()>(&context);
     /// ```
     #[inline(always)]
     pub fn build<Msg>(self) -> Arc<LongPoolingServiceContext<Msg>> {

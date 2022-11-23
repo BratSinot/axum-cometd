@@ -39,6 +39,8 @@ impl RouterBuilder {
     /// # Example
     /// ```rust
     /// use axum_cometd::RouterBuilder;
+    ///
+    /// # let context = axum_cometd::LongPoolingServiceContextBuilder::new().build::<()>();
     /// let app = RouterBuilder::new().build(&context);
     /// ```
     #[inline]
@@ -88,6 +90,8 @@ impl RouterBuilder {
     /// # Example
     /// ```rust
     /// use axum_cometd::RouterBuilder;
+    ///
+    /// # let context = axum_cometd::LongPoolingServiceContextBuilder::new().build::<()>();
     /// let app = RouterBuilder::new()
     ///     // Ex: `/handshake` -> `/foo/handshake`
     ///     .base_path("/foo/")
@@ -106,6 +110,8 @@ impl RouterBuilder {
     /// # Example
     /// ```rust
     /// use axum_cometd::RouterBuilder;
+    ///
+    /// # let context = axum_cometd::LongPoolingServiceContextBuilder::new().build::<()>();
     /// let app = RouterBuilder::new()
     ///     .base_path("/foo/")
     ///     // Ex: `/foo` -> `/foo/bar`
@@ -125,6 +131,8 @@ impl RouterBuilder {
     /// # Example
     /// ```rust
     /// use axum_cometd::RouterBuilder;
+    ///
+    /// # let context = axum_cometd::LongPoolingServiceContextBuilder::new().build::<()>();
     /// let app = RouterBuilder::new()
     ///     .base_path("/foo/")
     ///     // Ex: `/foo/handshake` -> `/foo/bar/handshake`
@@ -144,6 +152,8 @@ impl RouterBuilder {
     /// # Example
     /// ```rust
     /// use axum_cometd::RouterBuilder;
+    ///
+    /// # let context = axum_cometd::LongPoolingServiceContextBuilder::new().build::<()>();
     /// let app = RouterBuilder::new()
     ///     .base_path("/foo/")
     ///     // Ex: `/foo/connect` -> `/foo/bar/connect`
@@ -163,6 +173,8 @@ impl RouterBuilder {
     /// # Example
     /// ```rust
     /// use axum_cometd::RouterBuilder;
+    ///
+    /// # let context = axum_cometd::LongPoolingServiceContextBuilder::new().build::<()>();
     /// let app = RouterBuilder::new()
     ///     .base_path("/foo/")
     ///     // Ex: `/foo/disconnect` -> `/foo/bar/disconnect`

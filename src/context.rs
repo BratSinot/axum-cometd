@@ -29,11 +29,16 @@ where
     /// Send message to channel.
     ///
     /// # Example
-    /// ```rust
-    /// use std::time::Duration;
-    /// use axum_cometd::LongPoolingServiceContextBuilder;
+    /// ```rust    ///
+    ///     #[derive(Debug, Clone, serde::Serialize)]
+    ///     struct Data<'a> {
+    ///         msg: std::borrow::Cow<'a, str>,
+    ///         r#bool: bool,
+    ///         num: u64,
+    ///     }
     ///
-    ///     let context = LongPoolingServiceContextBuilder::new()
+    /// # async {
+    ///     let context = axum_cometd::LongPoolingServiceContextBuilder::new()
     ///         .timeout_ms(1000)
     ///         .max_interval_ms(2000)
     ///         .client_channel_capacity(10_000)
@@ -51,8 +56,10 @@ where
     ///                 },
     ///             )
     ///             .await?;
-    ///         tokio::time::sleep(Duration::from_millis(1000)).await;
+    ///         tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
     ///     }
+    /// # Ok::<(), tokio::sync::mpsc::error::SendError<Data>>(())
+    /// # };
     /// ```
     #[inline]
     pub async fn send(&self, topic: &str, msg: Msg) -> Result<(), mpsc::error::SendError<Msg>> {
