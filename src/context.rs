@@ -13,6 +13,7 @@ use ahash::{AHashMap, AHashSet};
 use std::{collections::hash_map::Entry, fmt::Debug, sync::Arc, time::Duration};
 use tokio::sync::{broadcast, mpsc, RwLock};
 
+/// Context for sending messages to channels.
 #[derive(Debug)]
 pub struct LongPoolingServiceContext<Msg> {
     pub(crate) consts: LongPoolingServiceContextConsts,
@@ -25,6 +26,34 @@ impl<Msg> LongPoolingServiceContext<Msg>
 where
     Msg: Debug + Clone + Send + 'static,
 {
+    /// Send message to channel.
+    ///
+    /// # Example
+    /// ```rust
+    /// use std::time::Duration;
+    /// use axum_cometd::LongPoolingServiceContextBuilder;
+    ///
+    ///     let context = LongPoolingServiceContextBuilder::new()
+    ///         .timeout_ms(1000)
+    ///         .max_interval_ms(2000)
+    ///         .client_channel_capacity(10_000)
+    ///         .subscription_channel_capacity(20_000)
+    ///         .build();
+    ///
+    ///     loop {
+    ///         context
+    ///             .send(
+    ///                 "/topic",
+    ///                 Data {
+    ///                     msg: "Hello World!!!".into(),
+    ///                     r#bool: true,
+    ///                     num: u64::MAX,
+    ///                 },
+    ///             )
+    ///             .await?;
+    ///         tokio::time::sleep(Duration::from_millis(1000)).await;
+    ///     }
+    /// ```
     #[inline]
     pub async fn send(&self, topic: &str, msg: Msg) -> Result<(), mpsc::error::SendError<Msg>> {
         if let Some(tx) = self.subscription_channels.read().await.get(topic) {
