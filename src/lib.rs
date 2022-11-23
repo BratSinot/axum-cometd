@@ -23,5 +23,5 @@ mod handlers;
 mod messages;
 mod types;
 
-pub(crate) use types::*;
-pub use {context::*, error::*};
+pub use context::*;
+pub(crate) use {error::*, types::*};
