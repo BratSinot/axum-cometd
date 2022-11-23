@@ -25,11 +25,6 @@ impl<Msg> LongPoolingServiceContext<Msg>
 where
     Msg: Debug + Clone + Send + 'static,
 {
-    #[inline(always)]
-    pub fn builder() -> LongPoolingServiceContextBuilder {
-        Default::default()
-    }
-
     #[inline]
     pub async fn send(&self, topic: &str, msg: Msg) -> Result<(), mpsc::error::SendError<Msg>> {
         if let Some(tx) = self.subscription_channels.read().await.get(topic) {
@@ -44,7 +39,7 @@ where
         }
     }
 
-    pub async fn register(self: &Arc<Self>) -> ClientId {
+    pub(crate) async fn register(self: &Arc<Self>) -> ClientId {
         static CLIENT_ID_GEN: ClientIdGen = ClientIdGen::new();
 
         let client_id = CLIENT_ID_GEN.next();
@@ -77,7 +72,7 @@ where
         client_id
     }
 
-    pub async fn subscribe(
+    pub(crate) async fn subscribe(
         self: &Arc<Self>,
         client_id: &ClientId,
         subscription: &str,
@@ -124,7 +119,7 @@ where
     }
 
     // TODO: Spawn task and send unsubscribe command through channel.
-    pub async fn unsubscribe(&self, client_id: &str) {
+    pub(crate) async fn unsubscribe(&self, client_id: &str) {
         let (mut client_ids_by_subscriptions, mut subscription_channels, mut client_id_channels) = tokio::join!(
             self.client_ids_by_subscriptions.write(),
             self.subscription_channels.write(),
