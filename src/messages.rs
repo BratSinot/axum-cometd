@@ -7,20 +7,20 @@ use std::fmt::Debug;
 
 #[skip_serializing_none]
 #[derive(Debug, Default, Serialize, Deserialize)]
-pub struct Advice {
-    pub interval: Option<u64>,
+pub(crate) struct Advice {
+    pub(crate) interval: Option<u64>,
     #[serde(rename = "maxInterval")]
-    pub max_interval: Option<u64>,
+    pub(crate) max_interval: Option<u64>,
     #[serde(rename = "multiple-clients")]
-    pub multiple_clients: Option<bool>,
-    pub reconnect: Option<Reconnect>,
-    pub timeout: Option<u64>,
-    pub hosts: Option<Vec<String>>,
+    pub(crate) multiple_clients: Option<bool>,
+    pub(crate) reconnect: Option<Reconnect>,
+    pub(crate) timeout: Option<u64>,
+    pub(crate) hosts: Option<Vec<String>>,
 }
 
 impl Advice {
     #[inline(always)]
-    pub fn retry(timeout_ms: u64, interval_ms: u64) -> Self {
+    pub(crate) fn retry(timeout_ms: u64, interval_ms: u64) -> Self {
         Self {
             reconnect: Some(Reconnect::Retry),
             timeout: Some(timeout_ms),
@@ -30,14 +30,14 @@ impl Advice {
     }
 
     #[inline(always)]
-    pub fn interval(&self) -> Option<u64> {
+    pub(crate) fn interval(&self) -> Option<u64> {
         self.interval
     }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
-pub enum Reconnect {
+pub(crate) enum Reconnect {
     Retry,
     Handshake,
     None,
@@ -45,27 +45,27 @@ pub enum Reconnect {
 
 #[skip_serializing_none]
 #[derive(Debug, Default, Serialize, Deserialize)]
-pub struct Message {
-    pub advice: Option<Advice>,
-    pub channel: Option<String>,
+pub(crate) struct Message {
+    pub(crate) advice: Option<Advice>,
+    pub(crate) channel: Option<String>,
     #[serde(rename = "clientId")]
-    pub client_id: Option<String>,
+    pub(crate) client_id: Option<String>,
     #[serde(rename = "connectionType")]
-    pub connection_type: Option<String>,
+    pub(crate) connection_type: Option<String>,
     // TODO: Replace on Msg generic?
-    pub data: Option<JsonValue>,
-    pub error: Option<String>,
-    //pub ext: Option<JsonValue>,
-    pub id: Option<String>,
+    pub(crate) data: Option<JsonValue>,
+    pub(crate) error: Option<String>,
+    //pub(crate) ext: Option<JsonValue>,
+    pub(crate) id: Option<String>,
     #[serde(rename = "minimumVersion")]
-    pub minimum_version: Option<String>,
-    //pub reestablish: Option<bool>,
-    pub subscription: Option<String>,
-    pub successful: Option<bool>,
+    pub(crate) minimum_version: Option<String>,
+    //pub(crate) reestablish: Option<bool>,
+    pub(crate) subscription: Option<String>,
+    pub(crate) successful: Option<bool>,
     #[serde(rename = "supportedConnectionTypes")]
-    pub supported_connection_types: Option<Vec<String>>,
-    //pub timestamp: Option<String>,
-    pub version: Option<String>,
+    pub(crate) supported_connection_types: Option<Vec<String>>,
+    //pub(crate) timestamp: Option<String>,
+    pub(crate) version: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -76,7 +76,7 @@ pub(crate) struct SubscriptionMessage<Msg> {
 
 impl Message {
     #[inline]
-    pub fn error<Str: Into<String>>(
+    pub(crate) fn error<Str: Into<String>>(
         message: Str,
         channel: Option<String>,
         client_id: Option<String>,

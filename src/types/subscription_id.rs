@@ -1,2 +1,2 @@
 // TODO: Replace on Arc<str>?
-pub type SubscriptionId = String;
+pub(crate) type SubscriptionId = String;

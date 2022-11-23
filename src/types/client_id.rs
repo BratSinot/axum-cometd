@@ -15,19 +15,19 @@ use tokio::{
 use tokio_util::sync::CancellationToken;
 
 // TODO: Replace on Arc<str>?
-pub type ClientId = String;
+pub(crate) type ClientId = String;
 
 #[derive(Debug)]
-pub struct ClientIdGen(AtomicU64);
+pub(crate) struct ClientIdGen(AtomicU64);
 
 impl ClientIdGen {
     #[inline(always)]
-    pub const fn new() -> Self {
+    pub(crate) const fn new() -> Self {
         Self(AtomicU64::new(0))
     }
 
     #[inline(always)]
-    pub fn next(&self) -> ClientId {
+    pub(crate) fn next(&self) -> ClientId {
         self.0.fetch_add(1, Ordering::Relaxed).to_string()
     }
 }
@@ -42,7 +42,7 @@ pub(crate) struct ClientSender<Msg> {
 
 impl<Msg> ClientSender<Msg> {
     #[inline]
-    pub fn create(
+    pub(crate) fn create(
         context: Arc<LongPoolingServiceContext<Msg>>,
         client_id: ClientId,
         timeout: Duration,
@@ -93,7 +93,7 @@ impl<Msg> ClientSender<Msg> {
     }
 
     #[inline]
-    pub fn subscribe(&self) -> ClientReceiver<Msg> {
+    pub(crate) fn subscribe(&self) -> ClientReceiver<Msg> {
         self.cancel_timeout.notify_waiters();
 
         let start_timeout = self.start_timeout.clone();
@@ -103,7 +103,7 @@ impl<Msg> ClientSender<Msg> {
     }
 
     #[inline(always)]
-    pub fn send(
+    pub(crate) fn send(
         &self,
         msg: SubscriptionMessage<Msg>,
     ) -> Result<usize, broadcast::error::SendError<SubscriptionMessage<Msg>>> {
