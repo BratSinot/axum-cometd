@@ -28,7 +28,7 @@ pub(crate) fn spawn<Msg>(
                 .filter_map(|client_id| client_id_channels.get(client_id).map(|v| (client_id, v)))
             {
                 tracing::trace!(
-                    client_id = client_id,
+                    client_id = %client_id,
                     subscription = subscription,
                     "Message `{msg:?}` from channel `{subscription}` was sent to client `{client_id}`."
                 );

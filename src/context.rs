@@ -78,31 +78,30 @@ where
     pub(crate) async fn register(self: &Arc<Self>) -> ClientId {
         static CLIENT_ID_GEN: ClientIdGen = ClientIdGen::new();
 
-        let client_id = CLIENT_ID_GEN.next();
+        let client_id = {
+            let mut client_id_channels_write_guard = self.client_id_channels.write().await;
+            loop {
+                let client_id = CLIENT_ID_GEN.next();
 
-        match self
-            .client_id_channels
-            .write()
-            .await
-            .entry(client_id.clone())
-        {
-            Entry::Occupied(_) => {
-                unreachable!("impossible")
+                match client_id_channels_write_guard.entry(client_id) {
+                    Entry::Occupied(_) => continue,
+                    Entry::Vacant(v) => {
+                        let (tx, _rx) = broadcast::channel(self.consts.client_channel_capacity);
+                        v.insert(ClientSender::create(
+                            self.clone(),
+                            client_id,
+                            Duration::from_millis(self.consts.max_interval_ms),
+                            tx,
+                        ));
+                        break client_id;
+                    }
+                }
             }
-            Entry::Vacant(v) => {
-                let (tx, _rx) = broadcast::channel(self.consts.client_channel_capacity);
-                v.insert(ClientSender::create(
-                    self.clone(),
-                    client_id.clone(),
-                    Duration::from_millis(self.consts.max_interval_ms),
-                    tx,
-                ));
-            }
-        }
+        };
 
         tracing::info!(
-            client_id = client_id,
-            "New client was registered with clientId {client_id}."
+            client_id = %client_id,
+            "New client was registered with clientId `{client_id}`."
         );
 
         client_id
@@ -110,15 +109,20 @@ where
 
     pub(crate) async fn subscribe(
         self: &Arc<Self>,
-        client_id: &ClientId,
+        client_id: ClientId,
         subscription: &str,
     ) -> CometdResult<()> {
-        if !self.client_id_channels.read().await.contains_key(client_id) {
+        if !self
+            .client_id_channels
+            .read()
+            .await
+            .contains_key(&client_id)
+        {
             tracing::error!(
-                client_id = client_id,
-                "Non-existing client with clientId {client_id}."
+                client_id = %client_id,
+                "Non-existing client with clientId `{client_id}`."
             );
-            return Err(CometdError::ClientDoesntExist(client_id.clone()));
+            return Err(CometdError::ClientDoesntExist(client_id));
         }
 
         if let Entry::Vacant(v) = self
@@ -143,10 +147,10 @@ where
             .await
             .entry(subscription.to_string())
             .or_default()
-            .insert(client_id.clone());
+            .insert(client_id);
 
         tracing::info!(
-            client_id = client_id,
+            client_id = %client_id,
             subscription = subscription,
             "Client with clientId `{client_id}` subscribe on `{subscription}` channel."
         );
@@ -155,7 +159,7 @@ where
     }
 
     // TODO: Spawn task and send unsubscribe command through channel.
-    pub(crate) async fn unsubscribe(&self, client_id: &str) {
+    pub(crate) async fn unsubscribe(&self, client_id: ClientId) {
         let (mut client_ids_by_subscriptions, mut subscription_channels, mut client_id_channels) = tokio::join!(
             self.client_ids_by_subscriptions.write(),
             self.subscription_channels.write(),
@@ -163,9 +167,9 @@ where
         );
 
         client_ids_by_subscriptions.retain(|subscription, client_ids| {
-            if client_ids.remove(client_id) {
+            if client_ids.remove(&client_id) {
                 tracing::info!(
-                    client_id = client_id,
+                    client_id = %client_id,
                     subscription = subscription,
                     "Client `{client_id}` was unsubscribed from channel `{subscription}."
                 );
@@ -183,14 +187,14 @@ where
             }
         });
 
-        if client_id_channels.remove(client_id).is_some() {
+        if client_id_channels.remove(&client_id).is_some() {
             tracing::info!(
-                client_id = client_id,
+                client_id = %client_id,
                 "Client `{client_id}` was unsubscribed."
             );
         } else {
             tracing::warn!(
-                client_id = client_id,
+                client_id = %client_id,
                 "Can't find client `{client_id}`. Can't unsubscribed."
             );
         }
@@ -199,14 +203,14 @@ where
     #[inline]
     pub(crate) async fn get_client_receiver(
         &self,
-        client_id: &str,
+        client_id: ClientId,
     ) -> CometdResult<ClientReceiver<Msg>> {
         let rx = self
             .client_id_channels
             .read()
             .await
-            .get(client_id)
-            .ok_or_else(|| CometdError::ClientDoesntExist(client_id.into()))?
+            .get(&client_id)
+            .ok_or(CometdError::ClientDoesntExist(client_id))?
             .subscribe();
 
         Ok(rx)

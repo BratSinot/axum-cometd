@@ -1,4 +1,4 @@
-use crate::types::SubscriptionId;
+use crate::types::{ClientId, SubscriptionId};
 use axum::Json;
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
@@ -49,7 +49,7 @@ pub(crate) struct Message {
     pub(crate) advice: Option<Advice>,
     pub(crate) channel: Option<String>,
     #[serde(rename = "clientId")]
-    pub(crate) client_id: Option<String>,
+    pub(crate) client_id: Option<ClientId>,
     #[serde(rename = "connectionType")]
     pub(crate) connection_type: Option<String>,
     // TODO: Replace on Msg generic?
@@ -79,7 +79,7 @@ impl Message {
     pub(crate) fn error<Str: Into<String>>(
         message: Str,
         channel: Option<String>,
-        client_id: Option<String>,
+        client_id: Option<ClientId>,
         id: Option<String>,
     ) -> Self {
         Self {

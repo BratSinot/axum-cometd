@@ -49,10 +49,10 @@ impl<Msg> ClientSender<Msg> {
                         _ = stop_signal.cancelled() => break,
                         _ = time::sleep(timeout) => {
                             tracing::info!(
-                                client_id = client_id,
+                                client_id = %client_id,
                                 "Client `{client_id}` timeout."
                             );
-                            context.unsubscribe(&client_id).await;
+                            context.unsubscribe(client_id).await;
                             break;
                         }
                         _ = cancel_timeout.notified() => continue,

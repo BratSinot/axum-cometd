@@ -30,24 +30,19 @@ where
         })?;
 
     let subscription = subscription.ok_or_else(|| {
-        Message::error(
-            "empty subscription",
-            channel.clone(),
-            client_id.clone(),
-            id.clone(),
-        )
+        Message::error("empty subscription", channel.clone(), client_id, id.clone())
     })?;
     let client_id = client_id
         .ok_or_else(|| Message::error("empty clientId", channel.clone(), None, id.clone()))?;
 
     context
-        .subscribe(&client_id, &subscription)
+        .subscribe(client_id, &subscription)
         .await
         .map_err(|error| {
             Message::error(
                 error.to_string(),
                 channel.clone(),
-                Some(client_id.clone()),
+                Some(client_id),
                 id.clone(),
             )
         })?;
