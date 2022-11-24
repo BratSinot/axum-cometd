@@ -1,152 +1,79 @@
-use crate::{messages::SubscriptionMessage, LongPoolingServiceContext};
-use std::{
-    fmt::Debug,
-    sync::{
-        atomic::{AtomicU64, Ordering},
-        Arc,
-    },
-    time::Duration,
-};
-use tokio::{
-    select,
-    sync::{broadcast, Notify},
-    time,
-};
-use tokio_util::sync::CancellationToken;
+use serde::{de::Unexpected, Deserialize, Deserializer, Serialize, Serializer};
+use std::fmt::{Debug, Display, Formatter};
 
-// TODO: Replace on Arc<str>?
-pub(crate) type ClientId = String;
+#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq)]
+pub(crate) struct ClientId([u32; 5]);
+
+impl Display for ClientId {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        for u32_chunk in self.0 {
+            write!(f, "{u32_chunk:x?}")?;
+        }
+        Ok(())
+    }
+}
+
+impl<'de> Deserialize<'de> for ClientId {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        use serde::de::Error;
+        let str = Box::<str>::deserialize(deserializer)?;
+        match str.len() {
+            40 => {
+                let p0 = &str[0..8];
+                let p1 = &str[8..16];
+                let p2 = &str[16..24];
+                let p3 = &str[24..32];
+                let p4 = &str[32..40];
+
+                let hex_str_to_u32 = |s| {
+                    u32::from_str_radix(s, 16).map_err(|_| {
+                        Error::invalid_value(Unexpected::Str(s), &"valid u32 hex string")
+                    })
+                };
+
+                Ok(Self([
+                    hex_str_to_u32(p0)?,
+                    hex_str_to_u32(p1)?,
+                    hex_str_to_u32(p2)?,
+                    hex_str_to_u32(p3)?,
+                    hex_str_to_u32(p4)?,
+                ]))
+            }
+            len => Err(Error::invalid_length(len, &"40")),
+        }
+    }
+}
+
+impl Serialize for ClientId {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.collect_str(self)
+    }
+}
 
 #[derive(Debug)]
-pub(crate) struct ClientIdGen(AtomicU64);
+pub(crate) struct ClientIdGen;
 
 impl ClientIdGen {
     #[inline(always)]
     pub(crate) const fn new() -> Self {
-        Self(AtomicU64::new(0))
+        Self
     }
 
     #[inline(always)]
     pub(crate) fn next(&self) -> ClientId {
-        self.0.fetch_add(1, Ordering::Relaxed).to_string()
-    }
-}
+        use rand::Rng;
 
-#[derive(Debug)]
-pub(crate) struct ClientSender<Msg> {
-    stop_signal: CancellationToken,
-    start_timeout: Arc<Notify>,
-    cancel_timeout: Arc<Notify>,
-    tx: broadcast::Sender<SubscriptionMessage<Msg>>,
-}
+        let mut id = [0u32; 5];
+        rand::thread_rng().fill(&mut id);
+        // to prevent leading zero
+        id[0] |= 0x10000000;
 
-impl<Msg> ClientSender<Msg> {
-    #[inline]
-    pub(crate) fn create(
-        context: Arc<LongPoolingServiceContext<Msg>>,
-        client_id: ClientId,
-        timeout: Duration,
-        tx: broadcast::Sender<SubscriptionMessage<Msg>>,
-    ) -> Self
-    where
-        Msg: Debug + Clone + Send + 'static,
-    {
-        let stop_signal = CancellationToken::new();
-        let start_timeout = Arc::new(Notify::new());
-        let cancel_timeout = Arc::new(Notify::new());
-
-        tokio::task::spawn({
-            let stop_signal = stop_signal.clone();
-            let start_timeout = start_timeout.clone();
-            let cancel_timeout = cancel_timeout.clone();
-            async move {
-                loop {
-                    select! {
-                        _ = start_timeout.notified() => {},
-                        _ = stop_signal.cancelled() => break,
-                    }
-
-                    select! {
-                        _ = stop_signal.cancelled() => break,
-                        _ = time::sleep(timeout) => {
-                            tracing::info!(
-                                client_id = client_id,
-                                "Client `{client_id}` timeout."
-                            );
-                            context.unsubscribe(&client_id).await;
-                            break;
-                        }
-                        _ = cancel_timeout.notified() => continue,
-                    }
-                }
-            }
-        });
-
-        start_timeout.notify_waiters();
-
-        Self {
-            stop_signal,
-            start_timeout,
-            cancel_timeout,
-            tx,
-        }
-    }
-
-    #[inline]
-    pub(crate) fn subscribe(&self) -> ClientReceiver<Msg> {
-        self.cancel_timeout.notify_waiters();
-
-        let start_timeout = self.start_timeout.clone();
-        let rx = self.tx.subscribe();
-
-        ClientReceiver { start_timeout, rx }
-    }
-
-    #[inline(always)]
-    pub(crate) fn send(
-        &self,
-        msg: SubscriptionMessage<Msg>,
-    ) -> Result<usize, broadcast::error::SendError<SubscriptionMessage<Msg>>> {
-        self.tx.send(msg)
-    }
-}
-
-impl<Msg> Drop for ClientSender<Msg> {
-    fn drop(&mut self) {
-        self.stop_signal.cancel();
-    }
-}
-
-#[derive(Debug)]
-pub(crate) struct ClientReceiver<Msg> {
-    start_timeout: Arc<Notify>,
-    rx: broadcast::Receiver<SubscriptionMessage<Msg>>,
-}
-
-impl<Msg> ClientReceiver<Msg> {
-    #[inline]
-    pub(crate) async fn recv_timeout(
-        &mut self,
-        duration: Duration,
-    ) -> Result<Option<SubscriptionMessage<Msg>>, time::error::Elapsed>
-    where
-        Msg: Clone,
-    {
-        time::timeout(duration, async {
-            loop {
-                match self.rx.recv().await {
-                    Ok(data) => break Some(data),
-                    Err(broadcast::error::RecvError::Lagged(_)) => continue,
-                    Err(broadcast::error::RecvError::Closed) => break None,
-                }
-            }
-        })
-        .await
-    }
-}
-
-impl<Msg> Drop for ClientReceiver<Msg> {
-    fn drop(&mut self) {
-        self.start_timeout.notify_waiters();
+        ClientId(id)
     }
 }

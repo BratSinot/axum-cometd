@@ -1,3 +1,4 @@
+use crate::types::ClientId;
 use crate::{
     messages::{Advice, Message, SubscriptionMessage},
     LongPoolingServiceContext,
@@ -44,13 +45,13 @@ where
         .unwrap_or(context.consts.timeout_ms);
 
     let mut rx = context
-        .get_client_receiver(&client_id)
+        .get_client_receiver(client_id)
         .await
         .map_err(|error| {
             Message::error(
                 error.to_string(),
                 channel.clone(),
-                Some(client_id.clone()),
+                Some(client_id),
                 id.clone(),
             )
         })?;
@@ -72,7 +73,7 @@ where
             Message::error(
                 "channel was closed",
                 channel.clone(),
-                Some(client_id.clone()),
+                Some(client_id),
                 id.clone(),
             )
         })?;
@@ -96,14 +97,14 @@ where
 fn check_supported_connect_type(
     connection_type: &Option<String>,
     channel: &Option<String>,
-    client_id: &Option<String>,
+    client_id: &Option<ClientId>,
     id: &Option<String>,
 ) -> Result<(), Message> {
     if connection_type.as_deref() != Some("long-polling") {
         Err(Message::error(
             "unsupported connectionType",
             channel.clone(),
-            client_id.clone(),
+            *client_id,
             id.clone(),
         ))
     } else {

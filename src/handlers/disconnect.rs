@@ -23,7 +23,7 @@ where
         } = message;
 
         if let Some(client_id) = client_id {
-            context.unsubscribe(&client_id).await;
+            context.unsubscribe(client_id).await;
 
             Err(StatusCode::BAD_REQUEST)
         } else {
