@@ -7,7 +7,7 @@ pub(crate) struct ClientId([u32; 5]);
 impl Display for ClientId {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         for u32_chunk in self.0 {
-            write!(f, "{u32_chunk:x?}")?;
+            write!(f, "{u32_chunk:08x?}")?;
         }
         Ok(())
     }
