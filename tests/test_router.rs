@@ -1,6 +1,5 @@
 use axum::Router;
 use axum_cometd::{LongPoolingServiceContextBuilder, RouterBuilder};
-use futures_util::future::FutureExt;
 use serde_json::{json, Value as JsonValue};
 use test_common::*;
 use tokio::try_join;
@@ -41,7 +40,7 @@ async fn test_different_paths() {
     subscribe_to_subscription(&app, "/root/sub", &client_id, "SUPER_IMPORTANT_CHANNEL").await;
 
     let (data, ()) = try_join!(
-        receive_message_and_extract_data(&app, &client_id).map(Ok),
+        async { Ok(receive_message_and_extract_data(&app, &client_id).await) },
         context.send(
             "SUPER_IMPORTANT_CHANNEL",
             json!({"msg": "integration_test"})
