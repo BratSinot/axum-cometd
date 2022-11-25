@@ -11,6 +11,7 @@ keywords = ["http", "cometd", "axum"]
 
 [workspace]
 members = [
+    "./examples/test-common",
     "./examples/server"
 ]
 
@@ -30,6 +31,7 @@ tower-service = "0.3"
 tracing = "0.1.37"
 
 [dev-dependencies]
+test-common = { path = "./examples/test-common" }
 tower = { version = "0.4.13", default-features = false }
 hyper = "0.14.23"
 futures-util = "0.3.25"
