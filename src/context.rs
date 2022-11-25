@@ -2,12 +2,11 @@ mod build_router;
 mod builder;
 mod subscription_task;
 
-pub use build_router::*;
-pub use builder::*;
+pub use {build_router::*, builder::*};
 
 use crate::{
     types::{ClientId, ClientIdGen, ClientReceiver, ClientSender, SubscriptionId},
-    CometdError, CometdResult,
+    CometdError, CometdResult, SendError,
 };
 use ahash::{AHashMap, AHashSet};
 use std::{collections::hash_map::Entry, fmt::Debug, sync::Arc, time::Duration};
@@ -58,21 +57,21 @@ where
     ///             .await?;
     ///         tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
     ///     }
-    /// # Ok::<(), tokio::sync::mpsc::error::SendError<Data>>(())
+    /// # Ok::<(), axum_cometd::SendError<Data>>(())
     /// # };
     /// ```
     #[inline]
-    pub async fn send(&self, topic: &str, msg: Msg) -> Result<(), mpsc::error::SendError<Msg>> {
+    pub async fn send(&self, topic: &str, msg: Msg) -> Result<(), SendError<Msg>> {
         if let Some(tx) = self.subscription_channels.read().await.get(topic) {
-            tx.send(msg).await
+            tx.send(msg).await?;
         } else {
             tracing::trace!(
                 topic = topic,
                 "No `{topic}` channel was found for message: `{msg:?}`."
             );
-
-            Ok(())
         }
+
+        Ok(())
     }
 
     pub(crate) async fn register(self: &Arc<Self>) -> ClientId {
@@ -111,7 +110,7 @@ where
         self: &Arc<Self>,
         client_id: ClientId,
         subscription: &str,
-    ) -> CometdResult<()> {
+    ) -> Result<(), ClientId> {
         if !self
             .client_id_channels
             .read()
@@ -122,7 +121,7 @@ where
                 client_id = %client_id,
                 "Non-existing client with clientId `{client_id}`."
             );
-            return Err(CometdError::ClientDoesntExist(client_id));
+            return Err(client_id);
         }
 
         if let Entry::Vacant(v) = self
