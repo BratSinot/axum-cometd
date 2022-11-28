@@ -23,16 +23,12 @@ async fn test_wrong_channel() {
 
     assert_eq!(
         message,
-        Message {
-            advice: Some(Advice {
-                reconnect: Some(Reconnect::None),
-                ..Default::default()
-            }),
-            channel: Some("/meta/connect".into()),
-            error: Some("no connect channel".into()),
-            successful: Some(false),
-            ..Default::default()
-        }
+        Message::error(
+            "no connect channel",
+            Some("/meta/connect".into()),
+            None,
+            None
+        )
     );
 }
 
@@ -52,16 +48,7 @@ async fn test_empty_client_id() {
 
     assert_eq!(
         message,
-        Message {
-            advice: Some(Advice {
-                reconnect: Some(Reconnect::None),
-                ..Default::default()
-            }),
-            channel: Some("/meta/connect".into()),
-            error: Some("empty clientId".into()),
-            successful: Some(false),
-            ..Default::default()
-        }
+        Message::error("empty clientId", Some("/meta/connect".into()), None, None)
     );
 }
 
@@ -85,17 +72,12 @@ async fn test_client_doesnt_exist() {
 
     assert_eq!(
         message,
-        Message {
-            advice: Some(Advice {
-                reconnect: Some(Reconnect::None),
-                ..Default::default()
-            }),
-            channel: Some("/meta/connect".into()),
-            client_id: Some(client_id),
-            error: Some(format!("Client with id {client_id} doesn't exist.")),
-            successful: Some(false),
-            ..Default::default()
-        }
+        Message::error(
+            format!("Client with id {client_id} doesn't exist."),
+            Some("/meta/connect".into()),
+            Some(client_id),
+            None
+        )
     );
 }
 
@@ -119,25 +101,17 @@ async fn test_wrong_connect_type() {
 
     assert_eq!(
         message,
-        Message {
-            advice: Some(Advice {
-                reconnect: Some(Reconnect::None),
-                ..Default::default()
-            }),
-            channel: Some("/meta/connect".into()),
+        Message::error(
+            "unsupported connectionType",
+            Some("/meta/connect".into()),
             client_id,
-            error: Some("unsupported connectionType".into()),
-            successful: Some(false),
-            ..Default::default()
-        }
+            None
+        )
     );
 }
 
 #[tokio::test]
 async fn test_reconnect() {
-    /*let client_id =
-    serde_json::from_value(json!("5804e4865f649fb91645030760db1f358c837af9")).unwrap();*/
-
     let context = LongPoolingServiceContextBuilder::new().build::<JsonValue>();
     let client_id = context.register().await;
     context.subscribe(client_id, "FOO_BAR").await.unwrap();
@@ -213,17 +187,11 @@ async fn test_channel_was_closed() {
 
     assert_eq!(
         message,
-        Message {
-            id: Some("4".into()),
-            advice: Some(Advice {
-                reconnect: Some(Reconnect::None),
-                ..Default::default()
-            }),
-            channel: Some("/meta/connect".into()),
-            client_id: Some(client_id),
-            error: Some("channel was closed".into()),
-            successful: Some(false),
-            ..Default::default()
-        }
+        Message::error(
+            "channel was closed",
+            Some("/meta/connect".into()),
+            Some(client_id),
+            Some("4".into())
+        )
     );
 }
