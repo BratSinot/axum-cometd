@@ -1,0 +1,17 @@
+{
+  "name": "k6-test",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/main.js",
+  "scripts": {
+    "webpack": "webpack",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Aleksandr Sinotov",
+  "devDependencies": {
+    "@babel/core": "7.19.3",
+    "babel-loader": "8.2.5",
+    "webpack": "5.74.0",
+    "webpack-cli": "4.10.0"
+  }
+}
