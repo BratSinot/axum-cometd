@@ -10,12 +10,12 @@ use std::{fmt::Debug, sync::Arc, time::Duration};
 
 pub(crate) async fn connect<Msg>(
     Extension(context): Extension<Arc<LongPoolingServiceContext<Msg>>>,
-    Json(messages): Json<Vec<Message>>,
+    Json([message]): Json<[Message; 1]>,
 ) -> Result<Json<[Message; 2]>, Json<[Message; 1]>>
 where
     Msg: Debug + Clone + Serialize + Send + 'static,
 {
-    tracing::info!("Got connect request: `{messages:?}`.");
+    tracing::info!("Got connect request: `{message:?}`.");
 
     let Message {
         id,
@@ -24,17 +24,16 @@ where
         advice,
         client_id,
         ..
-    } = messages
-        .into_iter()
-        .find(|message| message.channel.as_deref() == Some("/meta/connect"))
-        .ok_or_else(|| {
-            Message::error(
-                "no connect channel",
-                Some("/meta/connect".to_owned()),
-                None,
-                None,
-            )
-        })?;
+    } = message;
+
+    if channel.as_deref() != Some("/meta/connect") {
+        return Err(Json([Message::error(
+            "no connect channel",
+            Some("/meta/connect".to_owned()),
+            None,
+            None,
+        )]));
+    }
 
     check_supported_connect_type(&connection_type, &channel, &client_id, &id)?;
 

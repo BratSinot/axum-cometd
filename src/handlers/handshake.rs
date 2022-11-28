@@ -7,12 +7,12 @@ use std::{fmt::Debug, sync::Arc};
 
 pub(crate) async fn handshake<Msg>(
     Extension(context): Extension<Arc<LongPoolingServiceContext<Msg>>>,
-    Json(messages): Json<Vec<Message>>,
+    Json([message]): Json<[Message; 1]>,
 ) -> Result<Json<[Message; 1]>, Json<[Message; 1]>>
 where
     Msg: Debug + Clone + Send + 'static,
 {
-    tracing::info!("Got handshake request: `{messages:?}`.");
+    tracing::info!("Got handshake request: `{message:?}`.");
 
     let Message {
         advice,
@@ -21,19 +21,16 @@ where
         minimum_version,
         supported_connection_types,
         ..
-    } = messages
-        .into_iter()
-        .find(|message| message.channel.as_deref() == Some("/meta/handshake"))
-        .ok_or_else(|| {
-            Message::error(
-                "no handshake channel",
-                Some("/meta/handshake".to_owned()),
-                None,
-                None,
-            )
-        })?;
+    } = message;
 
-    let ret = if minimum_version.as_deref() != Some("1.0") {
+    let ret = if channel.as_deref() != Some("/meta/handshake") {
+        Err(Message::error(
+            "no handshake channel",
+            Some("/meta/handshake".to_owned()),
+            None,
+            None,
+        ))
+    } else if minimum_version.as_deref() != Some("1.0") {
         Err(Message::error(
             "unsupported protocol version",
             channel,

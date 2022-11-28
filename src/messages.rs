@@ -5,6 +5,7 @@ use serde_json::Value as JsonValue;
 use serde_with::skip_serializing_none;
 use std::fmt::Debug;
 
+#[cfg_attr(feature = "test", derive(Eq, PartialEq))]
 #[skip_serializing_none]
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub(crate) struct Advice {
@@ -35,6 +36,7 @@ impl Advice {
     }
 }
 
+#[cfg_attr(feature = "test", derive(Eq, PartialEq))]
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub(crate) enum Reconnect {
@@ -43,6 +45,7 @@ pub(crate) enum Reconnect {
     None,
 }
 
+#[cfg_attr(feature = "test", derive(Eq, PartialEq))]
 #[skip_serializing_none]
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub(crate) struct Message {
