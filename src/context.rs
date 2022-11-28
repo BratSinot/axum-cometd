@@ -16,9 +16,26 @@ use tokio::sync::{broadcast, mpsc, RwLock};
 #[derive(Debug)]
 pub struct LongPoolingServiceContext<Msg> {
     pub(crate) consts: LongPoolingServiceContextConsts,
-    client_ids_by_subscriptions: RwLock<AHashMap<SubscriptionId, AHashSet<ClientId>>>,
-    subscription_channels: RwLock<AHashMap<SubscriptionId, mpsc::Sender<Msg>>>,
+    subscriptions_data: RwLock<AHashMap<SubscriptionId, Subscription<Msg>>>,
     client_id_channels: Arc<RwLock<AHashMap<ClientId, ClientSender<Msg>>>>,
+}
+
+#[derive(Debug)]
+struct Subscription<Msg> {
+    client_ids: AHashSet<ClientId>,
+    tx: mpsc::Sender<Msg>,
+}
+
+impl<Msg> Subscription<Msg> {
+    #[inline(always)]
+    fn client_ids(&self) -> &AHashSet<ClientId> {
+        &self.client_ids
+    }
+
+    #[inline(always)]
+    fn tx_cloned(&self) -> mpsc::Sender<Msg> {
+        self.tx.clone()
+    }
 }
 
 impl<Msg> LongPoolingServiceContext<Msg>
@@ -62,7 +79,13 @@ where
     /// ```
     #[inline]
     pub async fn send(&self, topic: &str, msg: Msg) -> Result<(), SendError<Msg>> {
-        if let Some(tx) = self.subscription_channels.read().await.get(topic) {
+        let tx = self
+            .subscriptions_data
+            .read()
+            .await
+            .get(topic)
+            .map(Subscription::tx_cloned);
+        if let Some(tx) = tx {
             tx.send(msg).await?;
         } else {
             tracing::trace!(
@@ -124,29 +147,30 @@ where
             return Err(client_id);
         }
 
-        if let Entry::Vacant(v) = self
-            .subscription_channels
+        match self
+            .subscriptions_data
             .write()
             .await
             .entry(subscription.to_string())
         {
-            let (tx, rx) = mpsc::channel::<Msg>(self.consts.subscription_channel_capacity);
+            Entry::Occupied(o) => o.into_mut(),
+            Entry::Vacant(v) => {
+                let (tx, rx) = mpsc::channel::<Msg>(self.consts.subscription_channel_capacity);
 
-            subscription_task::spawn(subscription.to_string(), rx, self.clone());
-            v.insert(tx);
+                subscription_task::spawn(subscription.to_string(), rx, self.clone());
+                tracing::info!(
+                    subscription = subscription,
+                    "New subscription ({subscription}) channel was registered."
+                );
 
-            tracing::info!(
-                subscription = subscription,
-                "New subscription ({subscription}) channel was registered."
-            );
-        };
-
-        self.client_ids_by_subscriptions
-            .write()
-            .await
-            .entry(subscription.to_string())
-            .or_default()
-            .insert(client_id);
+                v.insert(Subscription {
+                    client_ids: Default::default(),
+                    tx,
+                })
+            }
+        }
+        .client_ids
+        .insert(client_id);
 
         tracing::info!(
             client_id = %client_id,
@@ -158,35 +182,48 @@ where
     }
 
     // TODO: Spawn task and send unsubscribe command through channel.
+    #[inline]
     pub(crate) async fn unsubscribe(&self, client_id: ClientId) {
-        let (mut client_ids_by_subscriptions, mut subscription_channels, mut client_id_channels) = tokio::join!(
-            self.client_ids_by_subscriptions.write(),
-            self.subscription_channels.write(),
-            self.client_id_channels.write()
+        tokio::join!(
+            self.remove_client_id_from_subscriptions(&client_id),
+            self.remove_client_channel(&client_id),
         );
+    }
 
-        client_ids_by_subscriptions.retain(|subscription, client_ids| {
-            if client_ids.remove(&client_id) {
-                tracing::info!(
-                    client_id = %client_id,
-                    subscription = subscription,
-                    "Client `{client_id}` was unsubscribed from channel `{subscription}."
-                );
-            }
+    #[inline]
+    async fn remove_client_id_from_subscriptions(&self, client_id: &ClientId) {
+        self.subscriptions_data.write().await.retain(
+            |subscription, Subscription { client_ids, tx: _ }| {
+                if client_ids.remove(client_id) {
+                    tracing::info!(
+                        client_id = %client_id,
+                        subscription = subscription,
+                        "Client `{client_id}` was unsubscribed from channel `{subscription}."
+                    );
+                }
 
-            if client_ids.is_empty() {
-                subscription_channels.remove(subscription);
-                false
-            } else {
-                tracing::info!(
-                    subscription = subscription,
-                    "Channel `{subscription}` have no active subscriber. Eliminate channel."
-                );
-                true
-            }
-        });
+                if client_ids.is_empty() {
+                    tracing::info!(
+                        subscription = subscription,
+                        "Channel `{subscription}` have no active subscriber. Eliminate channel."
+                    );
+                    false
+                } else {
+                    true
+                }
+            },
+        );
+    }
 
-        if client_id_channels.remove(&client_id).is_some() {
+    #[inline]
+    async fn remove_client_channel(&self, client_id: &ClientId) {
+        if self
+            .client_id_channels
+            .write()
+            .await
+            .remove(client_id)
+            .is_some()
+        {
             tracing::info!(
                 client_id = %client_id,
                 "Client `{client_id}` was unsubscribed."

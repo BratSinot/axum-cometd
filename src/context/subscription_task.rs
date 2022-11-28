@@ -1,3 +1,4 @@
+use crate::context::Subscription;
 use crate::{context::LongPoolingServiceContext, messages::SubscriptionMessage};
 use std::{fmt::Debug, sync::Arc};
 use tokio::sync::mpsc;
@@ -19,12 +20,12 @@ pub(crate) fn spawn<Msg>(
             let client_id_channels = inner.client_id_channels.read().await;
 
             for (client_id, client_channel) in inner
-                .client_ids_by_subscriptions
+                .subscriptions_data
                 .read()
                 .await
                 .get(&subscription)
                 .into_iter()
-                .flatten()
+                .flat_map(Subscription::client_ids)
                 .filter_map(|client_id| client_id_channels.get(client_id).map(|v| (client_id, v)))
             {
                 tracing::trace!(
