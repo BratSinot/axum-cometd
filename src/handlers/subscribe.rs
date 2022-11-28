@@ -4,12 +4,12 @@ use std::{fmt::Debug, sync::Arc};
 
 pub(crate) async fn subscribe<Msg>(
     Extension(context): Extension<Arc<LongPoolingServiceContext<Msg>>>,
-    Json(messages): Json<Vec<Message>>,
+    Json([message]): Json<[Message; 1]>,
 ) -> Result<Json<[Message; 1]>, Json<[Message; 1]>>
 where
     Msg: Debug + Clone + Send + 'static,
 {
-    tracing::info!("Got subscribe request: `{messages:?}`.");
+    tracing::info!("Got subscribe request: `{message:?}`.");
 
     let Message {
         id,
@@ -17,17 +17,16 @@ where
         subscription,
         client_id,
         ..
-    } = messages
-        .into_iter()
-        .find(|message| message.channel.as_deref() == Some("/meta/subscribe"))
-        .ok_or_else(|| {
-            Message::error(
-                "no subscribe channel",
-                Some("/meta/disconnect".to_owned()),
-                None,
-                None,
-            )
-        })?;
+    } = message;
+
+    if channel.as_deref() != Some("/meta/subscribe") {
+        return Err(Json([Message::error(
+            "no subscribe channel",
+            Some("/meta/disconnect".to_owned()),
+            None,
+            None,
+        )]));
+    };
 
     let subscription = subscription.ok_or_else(|| {
         Message::error("empty subscription", channel.clone(), client_id, id.clone())
