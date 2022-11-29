@@ -3,13 +3,6 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
-## [0.3.1]
-### Fixed
-
-### Add
-
-### Change
-
 ## [0.3.0]
 ### Fixed
 - Fix possible deadlock at unsubscribe.
@@ -20,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Change
 - `LongPoolingServiceContext::send` return `Result` if message wasn't send.
+- Update `axum` to `0.6.x`.
 
 ## [0.2.0] - 2022-11-23
 ### Fixed

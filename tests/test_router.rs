@@ -28,11 +28,11 @@ async fn test_different_paths() {
     let context = builder.build::<serde_json::Value>();
 
     let builder = RouterBuilder::new()
-        .base_path("/root/")
-        .subscribe_base_path("/sub/")
-        .handshake_base_path("/hand/")
-        .connect_base_path("/conn/")
-        .disconnect_base_path("/disconn/");
+        .base_path("/root")
+        .subscribe_base_path("/sub")
+        .handshake_base_path("/hand")
+        .connect_base_path("/conn")
+        .disconnect_base_path("/disconn");
     let _ = format!("{builder:?}");
     let app = builder.build(&context);
 

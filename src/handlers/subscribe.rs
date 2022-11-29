@@ -1,9 +1,9 @@
 use crate::{messages::Message, LongPoolingServiceContext};
-use axum::{Extension, Json};
+use axum::{extract::State, Json};
 use std::{fmt::Debug, sync::Arc};
 
 pub(crate) async fn subscribe<Msg>(
-    Extension(context): Extension<Arc<LongPoolingServiceContext<Msg>>>,
+    State(context): State<Arc<LongPoolingServiceContext<Msg>>>,
     Json([message]): Json<[Message; 1]>,
 ) -> Result<Json<[Message; 1]>, Json<[Message; 1]>>
 where

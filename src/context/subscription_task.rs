@@ -1,5 +1,7 @@
-use crate::context::Subscription;
-use crate::{context::LongPoolingServiceContext, messages::SubscriptionMessage};
+use crate::{
+    context::{LongPoolingServiceContext, Subscription},
+    messages::SubscriptionMessage,
+};
 use std::{fmt::Debug, sync::Arc};
 use tokio::sync::mpsc;
 

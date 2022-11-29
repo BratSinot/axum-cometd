@@ -1,5 +1,5 @@
 use crate::{handlers::*, LongPoolingServiceContext};
-use axum::{routing::post, Extension, Router};
+use axum::{routing::post, Router};
 use serde::Serialize;
 use std::{fmt::Debug, sync::Arc, time::Duration};
 use tower_http::timeout::TimeoutLayer;
@@ -57,17 +57,17 @@ impl RouterBuilder {
         } = self;
 
         let subscribe_route = Router::new().route(subscribe_base_path, post(subscribe::<Msg>));
-        let handshake_route = Router::new().nest(
-            handshake_base_path,
-            Router::new().route("/handshake", post(handshake::<Msg>)),
+        let handshake_route = Router::new().route(
+            &format!("{handshake_base_path}/handshake"),
+            post(handshake::<Msg>),
         );
-        let connect_route = Router::new().nest(
-            connect_base_path,
-            Router::new().route("/connect", post(connect::<Msg>)),
+        let connect_route = Router::new().route(
+            &format!("{connect_base_path}/connect"),
+            post(connect::<Msg>),
         );
-        let disconnect_route = Router::new().nest(
-            disconnect_base_path,
-            Router::new().route("/disconnect", post(disconnect::<Msg>)),
+        let disconnect_route = Router::new().route(
+            &format!("{disconnect_base_path}/disconnect"),
+            post(disconnect::<Msg>),
         );
 
         Router::new()
@@ -78,7 +78,7 @@ impl RouterBuilder {
                     .merge(handshake_route)
                     .merge(connect_route)
                     .merge(disconnect_route)
-                    .layer(Extension(context.clone())),
+                    .with_state(context.clone()),
             )
             .layer(TimeoutLayer::new(Duration::from_millis(
                 context.consts.timeout_ms,

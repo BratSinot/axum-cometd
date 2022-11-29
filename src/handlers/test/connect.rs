@@ -3,7 +3,7 @@ use crate::{
     messages::{Advice, Message, Reconnect},
     LongPoolingServiceContextBuilder,
 };
-use axum::{Extension, Json};
+use axum::{extract::State, Json};
 use serde_json::{json, Value as JsonValue};
 use std::time::Duration;
 use tokio::time::timeout;
@@ -12,7 +12,7 @@ use tokio::time::timeout;
 async fn test_wrong_channel() {
     let context = LongPoolingServiceContextBuilder::new().build::<JsonValue>();
     let Json([message]) = handlers::connect(
-        Extension(context.clone()),
+        State(context.clone()),
         Json([Message {
             channel: Some("/meta/non_connect".to_owned()),
             ..Default::default()
@@ -36,7 +36,7 @@ async fn test_wrong_channel() {
 async fn test_empty_client_id() {
     let context = LongPoolingServiceContextBuilder::new().build::<JsonValue>();
     let Json([message]) = handlers::connect(
-        Extension(context.clone()),
+        State(context.clone()),
         Json([Message {
             channel: Some("/meta/connect".to_owned()),
             connection_type: Some("long-polling".into()),
@@ -59,7 +59,7 @@ async fn test_client_doesnt_exist() {
 
     let context = LongPoolingServiceContextBuilder::new().build::<JsonValue>();
     let Json([message]) = handlers::connect(
-        Extension(context.clone()),
+        State(context.clone()),
         Json([Message {
             channel: Some("/meta/connect".to_owned()),
             connection_type: Some("long-polling".into()),
@@ -88,7 +88,7 @@ async fn test_wrong_connect_type() {
 
     let context = LongPoolingServiceContextBuilder::new().build::<JsonValue>();
     let Json([message]) = handlers::connect(
-        Extension(context.clone()),
+        State(context.clone()),
         Json([Message {
             channel: Some("/meta/connect".to_owned()),
             connection_type: Some("non-long-polling".into()),
@@ -119,7 +119,7 @@ async fn test_reconnect() {
     let Json([message]) = timeout(
         Duration::from_millis(1000),
         handlers::connect(
-            Extension(context.clone()),
+            State(context.clone()),
             Json([Message {
                 id: Some("4".into()),
                 channel: Some("/meta/connect".to_owned()),
@@ -167,7 +167,7 @@ async fn test_channel_was_closed() {
         },
         async {
             handlers::connect(
-                Extension(context.clone()),
+                State(context.clone()),
                 Json([Message {
                     id: Some("4".into()),
                     channel: Some("/meta/connect".to_owned()),

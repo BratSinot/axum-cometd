@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-axum = { version = "0.5.17", default-features = false }
+axum = { version = "0.6.1", default-features = false }
 hyper = "0.14.23"
 serde_json = "1.0.89"
 tower = { version = "0.4.13", default-features = false }

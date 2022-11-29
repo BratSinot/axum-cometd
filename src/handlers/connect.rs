@@ -3,13 +3,13 @@ use crate::{
     types::ClientId,
     LongPoolingServiceContext,
 };
-use axum::{Extension, Json};
+use axum::{extract::State, Json};
 use serde::Serialize;
 use serde_json::json;
 use std::{fmt::Debug, sync::Arc, time::Duration};
 
 pub(crate) async fn connect<Msg>(
-    Extension(context): Extension<Arc<LongPoolingServiceContext<Msg>>>,
+    State(context): State<Arc<LongPoolingServiceContext<Msg>>>,
     Json([message]): Json<[Message; 1]>,
 ) -> Result<Json<[Message; 2]>, Json<[Message; 1]>>
 where
