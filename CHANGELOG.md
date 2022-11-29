@@ -12,9 +12,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## [0.3.0]
 ### Fixed
-- Fix possible deadlock at unsubscribe. 
+- Fix possible deadlock at unsubscribe.
 
 ### Add
+- `LongPoolingServiceContextBuilder::client_storage_capacity`
+- `LongPoolingServiceContextBuilder::subscription_storage_capacity`
 
 ### Change
 - `LongPoolingServiceContext::send` return `Result` if message wasn't send.
@@ -37,7 +39,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Add
 
 ### Change
-- Use `self: &Arc<Self>` instead of `LongPoolingServiceContext(Arc<InnerLongPoolingServiceContext>)` ([#5](https://github.com/BratSinot/axum-cometd/pull/5))
+- Use `self: &Arc<Self>` instead
+  of `LongPoolingServiceContext(Arc<InnerLongPoolingServiceContext>)` ([#5](https://github.com/BratSinot/axum-cometd/pull/5))
 
 ## [0.1.0] - 2022-11-22
 - Initial release.
