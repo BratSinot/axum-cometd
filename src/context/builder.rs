@@ -6,14 +6,26 @@ use tokio::sync::RwLock;
 const DEFAULT_TIMEOUT_MS: u64 = 20_000;
 const DEFAULT_INTERVAL_MS: u64 = 0;
 const DEFAULT_MAX_INTERVAL_MS: u64 = 60_000;
-const DEFAULT_CHANNEL_CAPACITY: usize = 1_000_000;
+const DEFAULT_CHANNEL_CAPACITY: usize = 500;
+const DEFAULT_STORAGE_CAPACITY: usize = 10_000;
 
 /// A builder to construct `LongPoolingServiceContext`.
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct LongPoolingServiceContextBuilder {
-    subscriptions_capacity: usize,
-    client_ids_capacity: usize,
+    subscriptions_storage_capacity: usize,
+    client_ids_storage_capacity: usize,
     consts: LongPoolingServiceContextConsts,
+}
+
+impl Default for LongPoolingServiceContextBuilder {
+    #[inline(always)]
+    fn default() -> Self {
+        Self {
+            subscriptions_storage_capacity: DEFAULT_STORAGE_CAPACITY,
+            client_ids_storage_capacity: DEFAULT_STORAGE_CAPACITY,
+            consts: Default::default(),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -57,15 +69,19 @@ impl LongPoolingServiceContextBuilder {
     #[inline(always)]
     pub fn build<Msg>(self) -> Arc<LongPoolingServiceContext<Msg>> {
         let Self {
-            subscriptions_capacity,
-            client_ids_capacity,
+            subscriptions_storage_capacity,
+            client_ids_storage_capacity,
             consts,
         } = self;
 
         Arc::new(LongPoolingServiceContext {
             consts,
-            subscriptions_data: RwLock::new(AHashMap::with_capacity(subscriptions_capacity)),
-            client_id_channels: Arc::new(RwLock::new(AHashMap::with_capacity(client_ids_capacity))),
+            subscriptions_data: RwLock::new(AHashMap::with_capacity(
+                subscriptions_storage_capacity,
+            )),
+            client_id_channels: Arc::new(RwLock::new(AHashMap::with_capacity(
+                client_ids_storage_capacity,
+            ))),
         })
     }
 
@@ -106,26 +122,44 @@ impl LongPoolingServiceContextBuilder {
         }
     }
 
-    /// Set internal-channel capacity for clientId channel.
+    /// Set capacity of internal client channels.
     #[inline(always)]
-    pub fn client_channel_capacity(self, client_channel_capacity: usize) -> Self {
+    pub fn client_channel_capacity(self, capacity: usize) -> Self {
         Self {
             consts: LongPoolingServiceContextConsts {
-                client_channel_capacity,
+                client_channel_capacity: capacity,
                 ..self.consts
             },
             ..self
         }
     }
 
-    /// Set internal-channel capacity for subscription channel.
+    /// Set capacity of internal client channels storage.
     #[inline(always)]
-    pub fn subscription_channel_capacity(self, subscription_channel_capacity: usize) -> Self {
+    pub fn client_storage_capacity(self, capacity: usize) -> Self {
+        Self {
+            client_ids_storage_capacity: capacity,
+            ..self
+        }
+    }
+
+    /// Set capacity of internal subscription channels.
+    #[inline(always)]
+    pub fn subscription_channel_capacity(self, capacity: usize) -> Self {
         Self {
             consts: LongPoolingServiceContextConsts {
-                subscription_channel_capacity,
+                subscription_channel_capacity: capacity,
                 ..self.consts
             },
+            ..self
+        }
+    }
+
+    /// Set capacity of internal subscription channels storage.
+    #[inline(always)]
+    pub fn subscription_storage_capacity(self, capacity: usize) -> Self {
+        Self {
+            subscriptions_storage_capacity: capacity,
             ..self
         }
     }

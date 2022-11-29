@@ -32,8 +32,10 @@ async fn main() {
     let context = LongPoolingServiceContextBuilder::new()
         .timeout_ms(5000)
         .max_interval_ms(2000)
-        .client_channel_capacity(10_000)
-        .subscription_channel_capacity(20_000)
+        .client_channel_capacity(500)
+        .client_storage_capacity(10_000)
+        .subscription_channel_capacity(500)
+        .subscription_storage_capacity(10_000)
         .build();
     let app = RouterBuilder::new()
         .base_path("/notifications/")
