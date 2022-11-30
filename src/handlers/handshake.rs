@@ -10,7 +10,7 @@ pub(crate) async fn handshake<Msg>(
     Json([message]): Json<[Message; 1]>,
 ) -> Result<Json<[Message; 1]>, Json<[Message; 1]>>
 where
-    Msg: Debug + Clone + Send + 'static,
+    Msg: Debug + Send + Sync + 'static,
 {
     tracing::info!("Got handshake request: `{message:?}`.");
 

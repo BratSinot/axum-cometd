@@ -13,7 +13,7 @@ pub(crate) async fn connect<Msg>(
     Json([message]): Json<[Message; 1]>,
 ) -> Result<Json<[Message; 2]>, Json<[Message; 1]>>
 where
-    Msg: Debug + Clone + Serialize + Send + 'static,
+    Msg: Debug + Clone + Serialize,
 {
     tracing::info!("Got connect request: `{message:?}`.");
 

@@ -10,7 +10,7 @@ use crate::{
 };
 use ahash::{AHashMap, AHashSet};
 use std::{collections::hash_map::Entry, fmt::Debug, sync::Arc, time::Duration};
-use tokio::sync::{broadcast, mpsc, RwLock};
+use tokio::sync::{mpsc, RwLock};
 
 /// Context for sending messages to channels.
 #[derive(Debug)]
@@ -38,10 +38,7 @@ impl<Msg> Subscription<Msg> {
     }
 }
 
-impl<Msg> LongPoolingServiceContext<Msg>
-where
-    Msg: Debug + Clone + Send + 'static,
-{
+impl<Msg> LongPoolingServiceContext<Msg> {
     /// Send message to channel.
     ///
     /// # Example
@@ -78,7 +75,10 @@ where
     /// # };
     /// ```
     #[inline]
-    pub async fn send(&self, topic: &str, msg: Msg) -> Result<(), SendError<Msg>> {
+    pub async fn send(&self, topic: &str, msg: Msg) -> Result<(), SendError<Msg>>
+    where
+        Msg: Debug,
+    {
         let tx = self
             .subscriptions_data
             .read()
@@ -97,7 +97,10 @@ where
         Ok(())
     }
 
-    pub(crate) async fn register(self: &Arc<Self>) -> ClientId {
+    pub(crate) async fn register(self: &Arc<Self>) -> ClientId
+    where
+        Msg: Send + Sync + 'static,
+    {
         static CLIENT_ID_GEN: ClientIdGen = ClientIdGen::new();
 
         let client_id = {
@@ -108,12 +111,14 @@ where
                 match client_id_channels_write_guard.entry(client_id) {
                     Entry::Occupied(_) => continue,
                     Entry::Vacant(v) => {
-                        let (tx, _rx) = broadcast::channel(self.consts.client_channel_capacity);
+                        let (tx, rx) =
+                            async_broadcast::broadcast(self.consts.client_channel_capacity);
                         v.insert(ClientSender::create(
                             self.clone(),
                             client_id,
                             Duration::from_millis(self.consts.max_interval_ms),
                             tx,
+                            rx.deactivate(),
                         ));
                         break client_id;
                     }
@@ -133,7 +138,10 @@ where
         self: &Arc<Self>,
         client_id: ClientId,
         subscription: &str,
-    ) -> Result<(), ClientId> {
+    ) -> Result<(), ClientId>
+    where
+        Msg: Debug + Clone + Send + Sync + 'static,
+    {
         if !self
             .client_id_channels
             .read()

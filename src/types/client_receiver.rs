@@ -1,22 +1,17 @@
 use crate::messages::SubscriptionMessage;
+use async_broadcast::{Receiver, RecvError};
 use std::{fmt::Debug, sync::Arc, time::Duration};
-use tokio::{
-    sync::{broadcast, Notify},
-    time,
-};
+use tokio::{sync::Notify, time};
 
 #[derive(Debug)]
 pub(crate) struct ClientReceiver<Msg> {
     start_timeout: Arc<Notify>,
-    rx: broadcast::Receiver<SubscriptionMessage<Msg>>,
+    rx: Receiver<SubscriptionMessage<Msg>>,
 }
 
 impl<Msg> ClientReceiver<Msg> {
     #[inline(always)]
-    pub(crate) fn new(
-        start_timeout: Arc<Notify>,
-        rx: broadcast::Receiver<SubscriptionMessage<Msg>>,
-    ) -> Self {
+    pub(crate) fn new(start_timeout: Arc<Notify>, rx: Receiver<SubscriptionMessage<Msg>>) -> Self {
         Self { start_timeout, rx }
     }
 
@@ -29,11 +24,11 @@ impl<Msg> ClientReceiver<Msg> {
         Msg: Clone,
     {
         time::timeout(duration, async {
-            loop {
-                match self.rx.recv().await {
-                    Ok(data) => break Some(data),
-                    Err(broadcast::error::RecvError::Lagged(_)) => continue,
-                    Err(broadcast::error::RecvError::Closed) => break None,
+            match self.rx.recv().await {
+                Ok(data) => Some(data),
+                Err(RecvError::Closed) => None,
+                Err(RecvError::Overflowed(_)) => {
+                    unreachable!("broadcast overflow mode was enabled")
                 }
             }
         })
