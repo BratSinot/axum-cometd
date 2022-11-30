@@ -28,13 +28,12 @@ async fn test_different_paths() {
     let context = builder.build::<serde_json::Value>();
 
     let builder = RouterBuilder::new()
-        .base_path("/root/")
-        .subscribe_base_path("/sub/")
-        .handshake_base_path("/hand/")
-        .connect_base_path("/conn/")
-        .disconnect_base_path("/disconn/");
+        .subscribe_base_path("/sub")
+        .handshake_base_path("/hand")
+        .connect_base_path("/conn")
+        .disconnect_base_path("/disconn");
     let _ = format!("{builder:?}");
-    let app = builder.build(&context);
+    let app = Router::new().nest("/root", builder.build(&context));
 
     let client_id = get_client_id(&app, "/root/hand", 60_000).await;
     subscribe_to_subscription(&app, "/root/sub", &client_id, "SUPER_IMPORTANT_CHANNEL").await;
