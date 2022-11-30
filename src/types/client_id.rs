@@ -65,7 +65,7 @@ impl ClientIdGen {
         Self
     }
 
-    #[inline(always)]
+    #[inline]
     pub(crate) fn next(&self) -> ClientId {
         use rand::Rng;
 
