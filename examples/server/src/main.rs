@@ -1,7 +1,9 @@
+use axum::{Router, Server};
 use axum_cometd::{LongPoolingServiceContext, LongPoolingServiceContextBuilder, RouterBuilder};
 use rand::{distributions::Uniform, rngs::StdRng, Rng, SeedableRng};
 use std::{
     fmt::Debug,
+    net::{IpAddr, Ipv6Addr, SocketAddr},
     sync::Arc,
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
@@ -24,10 +26,8 @@ fn timestamp() -> u64 {
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt()
-        .with_env_filter("axum_cometd=debug")
+        .with_env_filter("axum_cometd=trace")
         .init();
-
-    let addr = "[::0]:1025".parse().unwrap();
 
     let context = LongPoolingServiceContextBuilder::new()
         .timeout_ms(5000)
@@ -37,18 +37,19 @@ async fn main() {
         .subscription_channel_capacity(500)
         .subscription_storage_capacity(10_000)
         .build();
-    let app = RouterBuilder::new()
-        .base_path("/notifications/")
-        .build(&context);
+    let service = Router::new()
+        .nest("/notifications", RouterBuilder::new().build(&context))
+        .into_make_service();
+    let addr = SocketAddr::new(IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0)), 1025);
+
+    let handler = tokio::task::spawn(Server::bind(&addr).serve(service));
 
     tracing::info!("Listen on: `{addr}`.");
-
-    tokio::task::spawn(axum::Server::bind(&addr).serve(app.into_make_service()));
 
     spawn_topic(context.clone(), "/topic0");
     spawn_topic(context, "/topic1");
 
-    tokio::time::sleep(Duration::from_secs(366 * 24 * 60)).await;
+    handler.await.unwrap().unwrap();
 }
 
 fn spawn_topic(context: Arc<LongPoolingServiceContext<Data>>, channel: &'static str) {

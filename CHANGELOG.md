@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Change
 - `LongPoolingServiceContext::send` return `Result` if message wasn't send.
 - Update `axum` to `0.6.x`.
+- Remove `RouterBuilder::base_path`.
 
 ## [0.2.0] - 2022-11-23
 ### Fixed
