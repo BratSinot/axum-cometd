@@ -50,7 +50,7 @@ pub async fn get_client_id(app: &Router, base_url: &str, timeout_ms: u64) -> Str
 pub async fn subscribe(app: &Router, base_url: &str, body: JsonValue) -> JsonValue {
     let response = app
         .clone()
-        .oneshot(build_req(&format!("{base_url}"), body))
+        .oneshot(build_req(base_url, body))
         .await
         .unwrap();
     assert_eq!(response.status(), StatusCode::OK);
