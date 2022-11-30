@@ -9,7 +9,7 @@ import {check} from 'k6';
 import http from 'k6/http';
 
 function log(msg) {
-    if (LOG_ENABLED == true) {
+    if (LOG_ENABLED == "true") {
         console.log(`[${__VU}]: ${msg}`);
     }
 }
@@ -29,7 +29,7 @@ export function setup() {
 
     for (let rcx = 1; rcx <= MAX_VUS; ++rcx) {
         const handshake_response = http.post(
-            `${url}/handshake/`,
+            `${url}/handshake`,
             JSON.stringify([{
                 "id": (ID++).toString(),
                 "version": "1.0",
@@ -47,7 +47,7 @@ export function setup() {
                 },
             }
         );
-        log(`Got handshake_response: \`${handshake_response}\``);
+        log(`Got handshake_response: \`${JSON.stringify(handshake_response)}\``);
         check(handshake_response, {
             'status is 200': (r) => r.status === 200,
             'successful is true': (r) => r.body && JSON.parse(r.body)[0]["successful"] == true,
@@ -56,7 +56,7 @@ export function setup() {
         const client_id = JSON.parse(handshake_response.body)[0]["clientId"];
 
         const subscribe_response = http.post(
-            `${url}/`,
+            url,
             JSON.stringify([{
                 "id": (ID++).toString(),
                 "channel": "/meta/subscribe",
@@ -85,7 +85,7 @@ export default ([url, CLIENT_IDS]) => {
     const id = (ID++).toString();
 
     const response = http.post(
-        `${url}/connect/`,
+        `${url}/connect`,
         JSON.stringify([{
             "id": id,
             "channel": "/meta/connect",
