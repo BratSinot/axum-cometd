@@ -7,7 +7,7 @@ pub(crate) async fn disconnect<Msg>(
     Json([message]): Json<[Message; 1]>,
 ) -> Result<Json<[Message; 1]>, StatusCode>
 where
-    Msg: Debug + Clone + Send + 'static,
+    Msg: Debug,
 {
     tracing::info!("Got disconnect request: `{message:?}`.");
 

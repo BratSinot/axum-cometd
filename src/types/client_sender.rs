@@ -1,14 +1,12 @@
 use crate::{
     messages::SubscriptionMessage,
+    sugar::ignore_inactive_broadcast,
     types::{ClientId, ClientReceiver},
     LongPoolingServiceContext,
 };
+use async_broadcast::{InactiveReceiver, SendError, Sender};
 use std::{fmt::Debug, sync::Arc, time::Duration};
-use tokio::{
-    select,
-    sync::{broadcast, Notify},
-    time,
-};
+use tokio::{select, sync::Notify, time};
 use tokio_util::sync::CancellationToken;
 
 #[derive(Debug)]
@@ -16,7 +14,8 @@ pub(crate) struct ClientSender<Msg> {
     stop_signal: CancellationToken,
     start_timeout: Arc<Notify>,
     cancel_timeout: Arc<Notify>,
-    tx: broadcast::Sender<SubscriptionMessage<Msg>>,
+    tx: Sender<SubscriptionMessage<Msg>>,
+    inactive_rx: InactiveReceiver<SubscriptionMessage<Msg>>,
 }
 
 impl<Msg> ClientSender<Msg> {
@@ -25,10 +24,11 @@ impl<Msg> ClientSender<Msg> {
         context: Arc<LongPoolingServiceContext<Msg>>,
         client_id: ClientId,
         timeout: Duration,
-        tx: broadcast::Sender<SubscriptionMessage<Msg>>,
+        tx: Sender<SubscriptionMessage<Msg>>,
+        inactive_rx: InactiveReceiver<SubscriptionMessage<Msg>>,
     ) -> Self
     where
-        Msg: Debug + Clone + Send + 'static,
+        Msg: Send + Sync + 'static,
     {
         let stop_signal = CancellationToken::new();
         let start_timeout = Arc::new(Notify::new());
@@ -68,6 +68,7 @@ impl<Msg> ClientSender<Msg> {
             start_timeout,
             cancel_timeout,
             tx,
+            inactive_rx,
         }
     }
 
@@ -76,17 +77,20 @@ impl<Msg> ClientSender<Msg> {
         self.cancel_timeout.notify_waiters();
 
         let start_timeout = self.start_timeout.clone();
-        let rx = self.tx.subscribe();
+        let rx = self.inactive_rx.activate_cloned();
 
         ClientReceiver::new(start_timeout, rx)
     }
 
     #[inline(always)]
-    pub(crate) fn send(
+    pub(crate) async fn send(
         &self,
         msg: SubscriptionMessage<Msg>,
-    ) -> Result<usize, broadcast::error::SendError<SubscriptionMessage<Msg>>> {
-        self.tx.send(msg)
+    ) -> Result<(), SendError<SubscriptionMessage<Msg>>>
+    where
+        Msg: Clone,
+    {
+        ignore_inactive_broadcast(&self.tx, msg).await
     }
 }
 

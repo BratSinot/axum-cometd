@@ -44,7 +44,7 @@ impl RouterBuilder {
     #[inline]
     pub fn build<Msg>(self, context: &Arc<LongPoolingServiceContext<Msg>>) -> Router
     where
-        Msg: Debug + Clone + Send + Serialize + 'static,
+        Msg: Debug + Clone + Serialize + Send + Sync + 'static,
     {
         let Self {
             subscribe_base_path,

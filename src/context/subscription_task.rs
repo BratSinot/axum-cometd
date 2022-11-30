@@ -10,7 +10,7 @@ pub(crate) fn spawn<Msg>(
     mut rx: mpsc::Receiver<Msg>,
     inner: Arc<LongPoolingServiceContext<Msg>>,
 ) where
-    Msg: Debug + Clone + Send + 'static,
+    Msg: Debug + Clone + Send + Sync + 'static,
 {
     tokio::task::spawn(async move {
         while let Some(msg) = rx.recv().await {
@@ -36,10 +36,22 @@ pub(crate) fn spawn<Msg>(
                     "Message `{msg:?}` from channel `{subscription}` was sent to client `{client_id}`."
                 );
 
-                let _todo = client_channel.send(SubscriptionMessage {
-                    subscription: subscription.clone(),
-                    msg: msg.clone(),
-                });
+                match client_channel
+                    .send(SubscriptionMessage {
+                        subscription: subscription.clone(),
+                        msg: msg.clone(),
+                    })
+                    .await
+                {
+                    Ok(()) => {}
+                    Err(_) => {
+                        tracing::error!(
+                            client_id = %client_id,
+                            subscription = subscription,
+                            "Channel was closed!"
+                        );
+                    }
+                }
             }
         }
     });

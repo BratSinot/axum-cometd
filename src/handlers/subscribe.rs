@@ -7,7 +7,7 @@ pub(crate) async fn subscribe<Msg>(
     Json([message]): Json<[Message; 1]>,
 ) -> Result<Json<[Message; 1]>, Json<[Message; 1]>>
 where
-    Msg: Debug + Clone + Send + 'static,
+    Msg: Debug + Clone + Send + Sync + 'static,
 {
     tracing::info!("Got subscribe request: `{message:?}`.");
 
