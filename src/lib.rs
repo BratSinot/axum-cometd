@@ -21,7 +21,6 @@ mod context;
 mod error;
 mod handlers;
 mod messages;
-mod sugar;
 mod types;
 
 pub(crate) use types::*;

@@ -1,12 +1,13 @@
+mod client_timeout;
+
 use crate::{
     messages::SubscriptionMessage,
-    sugar::ignore_inactive_broadcast,
     types::{ClientId, ClientReceiver},
     LongPoolingServiceContext,
 };
-use async_broadcast::{InactiveReceiver, SendError, Sender};
+use async_broadcast::{InactiveReceiver, SendError, Sender, TrySendError};
 use std::{fmt::Debug, sync::Arc, time::Duration};
-use tokio::{select, sync::Notify, time};
+use tokio::sync::Notify;
 use tokio_util::sync::CancellationToken;
 
 #[derive(Debug)]
@@ -34,32 +35,14 @@ impl<Msg> ClientSender<Msg> {
         let start_timeout = Arc::new(Notify::new());
         let cancel_timeout = Arc::new(Notify::new());
 
-        tokio::task::spawn({
-            let stop_signal = stop_signal.clone();
-            let start_timeout = start_timeout.clone();
-            let cancel_timeout = cancel_timeout.clone();
-            async move {
-                loop {
-                    select! {
-                        _ = start_timeout.notified() => {},
-                        _ = stop_signal.cancelled() => break,
-                    }
-
-                    select! {
-                        _ = stop_signal.cancelled() => break,
-                        _ = time::sleep(timeout) => {
-                            tracing::info!(
-                                client_id = %client_id,
-                                "Client `{client_id}` timeout."
-                            );
-                            context.unsubscribe(client_id).await;
-                            break;
-                        }
-                        _ = cancel_timeout.notified() => continue,
-                    }
-                }
-            }
-        });
+        client_timeout::spawn(
+            context,
+            client_id,
+            timeout,
+            stop_signal.clone(),
+            start_timeout.clone(),
+            cancel_timeout.clone(),
+        );
 
         start_timeout.notify_waiters();
 
@@ -82,7 +65,7 @@ impl<Msg> ClientSender<Msg> {
         ClientReceiver::new(start_timeout, rx)
     }
 
-    #[inline(always)]
+    #[inline]
     pub(crate) async fn send(
         &self,
         msg: SubscriptionMessage<Msg>,
@@ -90,7 +73,15 @@ impl<Msg> ClientSender<Msg> {
     where
         Msg: Clone,
     {
-        ignore_inactive_broadcast(&self.tx, msg).await
+        match self.tx.try_broadcast(msg) {
+            Ok(None) | Err(TrySendError::Inactive(_)) => Ok(()),
+            Ok(Some(msg)) | Err(TrySendError::Full(msg)) => match self.tx.broadcast(msg).await {
+                Ok(None) => Ok(()),
+                Err(err) => Err(err),
+                Ok(Some(_msg)) => unreachable!("broadcast overflow mode was enabled"),
+            },
+            Err(TrySendError::Closed(msg)) => Err(SendError(msg)),
+        }
     }
 }
 
