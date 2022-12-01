@@ -26,13 +26,24 @@ const cometdServer = cometd.createCometDServer({
     duplicateMetaConnectHttpResponseCode: 409 //GAPI-18907
 });
 
-const channel = cometdServer.createServerChannel('/topic');
-channel.addListener('message', function (session, channel, message, callback) {
+const topic0 = cometdServer.createServerChannel('/topic0');
+topic0.addListener('message', function (session, channel, message, callback) {
     /*console.log("Got message: ", {
         "session": session,
-        "channel": channel,
+        "channel": channel.name,
         "message": message,
-        "callback": callback,
+    });*/
+
+    // Invoke the callback to signal that handling is complete.
+    callback();
+});
+
+const topic1 = cometdServer.createServerChannel('/topic0');
+topic1.addListener('message', function (session, channel, message, callback) {
+    /*console.log("Got message: ", {
+        "session": session,
+        "channel": channel.name,
+        "message": message,
     });*/
 
     // Invoke the callback to signal that handling is complete.
@@ -44,7 +55,6 @@ cometdServer.addListener('sessionAdded', (cometConnection, msg) => {
 });
 cometdServer.addListener('sessionRemoved', (cometConnection, timeout) => {
     console.log("sessionRemoved, (cometConnection: \"" + json(cometConnection), "\", timeout: \"", timeout, "\"");
-    //
 });
 
 app.use('/notifications', cometdServer.handle);
@@ -56,23 +66,19 @@ let port = app.get('port');
 server.listen(port, function (): void {
     console.log(`Server running on port ${port}.`);
 
-    setTimeout(function () {
-            channel.publish("Vasya", {
-                "type": "from_server",
-                "message": "Some json"
-            });
-        },
-        5000);
-    //loop();
+    loop();
 });
 
-/*function loop() {
+function loop() {
     setTimeout(function () {
         console.log("Publish");
-        channel.publish("Vasya", {
-            "type": "from_server",
-            "foo": "bar"
-        });
+        topic1.publish(
+            "Vasya",
+            {
+                "type": "from_server",
+                "foo": "bar"
+            }
+        );
         loop();
     }, 1000)
-}*/
+}
