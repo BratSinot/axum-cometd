@@ -20,7 +20,7 @@ async fn receive_message_and_extract_data(app: &Router, client_id: &str) -> Json
 #[tokio::test]
 async fn test_different_paths() {
     let builder = LongPoolingServiceContextBuilder::new()
-        .timeout_ms(20_000)
+        .timeout_ms(1000)
         .max_interval_ms(60_000)
         .client_channel_capacity(10)
         .subscription_channel_capacity(10);
@@ -47,5 +47,20 @@ async fn test_different_paths() {
     )
     .unwrap();
 
-    assert_eq!(data, json!({"msg": "integration_test"}))
+    assert_eq!(data, json!({"msg": "integration_test"}));
+
+    let response = receive_message(&app, "/root/conn", &client_id).await;
+    assert_eq!(
+        response,
+        json!([{
+            "id": "4",
+            "advice": {
+                "interval":0,
+                "reconnect":"retry",
+                "timeout": 1000
+            },
+            "channel": "/meta/connect",
+            "successful":true
+        }])
+    );
 }
