@@ -1,0 +1,8 @@
+[
+  {
+    "id": "3",
+    "channel": "/topic0",
+    "successful": false,
+    "error": "402::session_unknown"
+  }
+]
