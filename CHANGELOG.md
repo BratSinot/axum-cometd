@@ -10,9 +10,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Add
 
+- Add support for client message publishing.
+
 ### Change
 
 - Remove `Msg` generic from `LongPoolingServiceContext`. `LongPoolingServiceContext::send` is generic now.
+- Sync some responses with JS version.
 
 ## [0.3.0]
 

@@ -41,7 +41,7 @@ topic0.addListener('message', function (session, channel, message, callback) {
 const topic1 = cometdServer.createServerChannel('/topic0');
 topic1.addListener('message', function (session, channel, message, callback) {
     /*console.log("Got message: ", {
-        "session": session,
+        "id": session.id,
         "channel": channel.name,
         "message": message,
     });*/

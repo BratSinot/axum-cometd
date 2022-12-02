@@ -3,7 +3,7 @@ use crate::{
     messages::{Advice, Message, Reconnect},
     LongPoolingServiceContextBuilder,
 };
-use axum::{extract::State, Json};
+use axum::{extract::State, http::StatusCode, Json};
 use serde_json::json;
 use std::time::Duration;
 use tokio::time::timeout;
@@ -20,13 +20,10 @@ async fn test_wrong_channel() {
     )
     .await
     .unwrap_err()
-    .into_message()
+    .into_status_code()
     .unwrap();
 
-    assert_eq!(
-        message,
-        Message::error("400::channel_missing", None, None, None)
-    );
+    assert_eq!(message, StatusCode::INTERNAL_SERVER_ERROR);
 }
 
 #[tokio::test]
@@ -36,7 +33,6 @@ async fn test_empty_client_id() {
         State(context.clone()),
         Json(vec![Message {
             channel: Some("/meta/connect".to_owned()),
-            connection_type: Some("long-polling".into()),
             ..Default::default()
         }]),
     )
@@ -47,7 +43,11 @@ async fn test_empty_client_id() {
 
     assert_eq!(
         message,
-        Message::error("empty clientId", Some("/meta/connect".into()), None, None)
+        Message::session_unknown(
+            None,
+            Some("/meta/connect".into()),
+            Some(Advice::handshake())
+        )
     );
 }
 
@@ -61,7 +61,6 @@ async fn test_client_doesnt_exist() {
         State(context.clone()),
         Json(vec![Message {
             channel: Some("/meta/connect".to_owned()),
-            connection_type: Some("long-polling".into()),
             client_id: Some(client_id),
             ..Default::default()
         }]),
@@ -73,11 +72,10 @@ async fn test_client_doesnt_exist() {
 
     assert_eq!(
         message,
-        Message::error(
-            format!("Client with id {client_id} doesn't exist."),
+        Message::session_unknown(
+            None,
             Some("/meta/connect".into()),
-            Some(client_id),
-            None
+            Some(Advice::handshake())
         )
     );
 }
@@ -92,7 +90,6 @@ async fn test_wrong_connect_type() {
         State(context.clone()),
         Json(vec![Message {
             channel: Some("/meta/connect".to_owned()),
-            connection_type: Some("non-long-polling".into()),
             client_id,
             ..Default::default()
         }]),
@@ -104,11 +101,10 @@ async fn test_wrong_connect_type() {
 
     assert_eq!(
         message,
-        Message::error(
-            "unsupported connectionType",
+        Message::session_unknown(
+            None,
             Some("/meta/connect".into()),
-            client_id,
-            None
+            Some(Advice::handshake())
         )
     );
 }
@@ -126,7 +122,6 @@ async fn test_reconnect() {
             Json(vec![Message {
                 id: Some("4".into()),
                 channel: Some("/meta/connect".to_owned()),
-                connection_type: Some("long-polling".into()),
                 advice: Some(Advice {
                     timeout: Some(0),
                     ..Default::default()
@@ -165,7 +160,7 @@ async fn test_channel_was_closed() {
     let client_id = context.register().await;
     context.subscribe(client_id, "FOO_BAR").await.unwrap();
 
-    let ((), message) = tokio::join!(
+    let ((), status_code) = tokio::join!(
         async {
             tokio::time::sleep(Duration::from_millis(100)).await;
             context.unsubscribe(client_id).await;
@@ -176,7 +171,6 @@ async fn test_channel_was_closed() {
                 Json(vec![Message {
                     id: Some("4".into()),
                     channel: Some("/meta/connect".to_owned()),
-                    connection_type: Some("long-polling".into()),
                     advice: Some(Advice {
                         timeout: Some(3000),
                         ..Default::default()
@@ -187,18 +181,10 @@ async fn test_channel_was_closed() {
             )
             .await
             .unwrap_err()
-            .into_message()
+            .into_status_code()
             .unwrap()
         }
     );
 
-    assert_eq!(
-        message,
-        Message::error(
-            "channel was closed",
-            Some("/meta/connect".into()),
-            Some(client_id),
-            Some("4".into())
-        )
-    );
+    assert_eq!(status_code, StatusCode::INTERNAL_SERVER_ERROR);
 }
