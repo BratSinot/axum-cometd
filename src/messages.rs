@@ -1,4 +1,4 @@
-use crate::types::{ClientId, SubscriptionId};
+use crate::types::{ChannelId, ClientId};
 use axum::Json;
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
@@ -31,8 +31,12 @@ impl Advice {
     }
 
     #[inline(always)]
-    pub(crate) fn interval(&self) -> Option<u64> {
-        self.interval
+    pub(crate) fn handshake() -> Self {
+        Self {
+            reconnect: Some(Reconnect::Handshake),
+            interval: Some(0),
+            ..Default::default()
+        }
     }
 }
 
@@ -53,9 +57,8 @@ pub(crate) struct Message {
     pub(crate) channel: Option<String>,
     #[serde(rename = "clientId")]
     pub(crate) client_id: Option<ClientId>,
-    #[serde(rename = "connectionType")]
-    pub(crate) connection_type: Option<String>,
-    // TODO: Replace on Msg generic?
+    //#[serde(rename = "connectionType")]
+    //pub(crate) connection_type: Option<String>,
     pub(crate) data: Option<JsonValue>,
     pub(crate) error: Option<String>,
     //pub(crate) ext: Option<JsonValue>,
@@ -73,29 +76,59 @@ pub(crate) struct Message {
 
 #[derive(Debug, Clone)]
 pub(crate) struct SubscriptionMessage {
-    pub(crate) subscription: SubscriptionId,
+    pub(crate) subscription: ChannelId,
     pub(crate) msg: JsonValue,
 }
 
 impl Message {
-    #[inline]
-    pub(crate) fn error<Str: Into<String>>(
-        message: Str,
-        channel: Option<String>,
-        client_id: Option<ClientId>,
+    #[inline(always)]
+    pub(crate) fn session_unknown(
         id: Option<String>,
+        channel: Option<String>,
+        advice: Option<Advice>,
     ) -> Self {
         Self {
-            advice: Some(Advice {
-                reconnect: Some(Reconnect::None),
-                ..Default::default()
-            }),
-            channel,
-            client_id,
-            error: Some(message.into()),
             id,
             successful: Some(false),
-            ..Self::default()
+            channel,
+            error: Some("402::session_unknown".into()),
+            advice,
+            ..Default::default()
+        }
+    }
+
+    #[inline(always)]
+    pub(crate) fn wrong_minimum_version(
+        id: Option<String>,
+        minimum_version: Option<String>,
+    ) -> Self {
+        Self {
+            id,
+            successful: Some(false),
+            minimum_version,
+            error: Some("400::minimum_version_missing".into()),
+            ..Default::default()
+        }
+    }
+
+    #[inline(always)]
+    pub(crate) fn subscription_missing(id: Option<String>) -> Self {
+        Self {
+            id,
+            channel: Some("/meta/subscribe".into()),
+            successful: Some(false),
+            error: Some("403::subscription_missing".into()),
+            ..Default::default()
+        }
+    }
+
+    #[inline(always)]
+    pub(crate) fn channel_missing(id: Option<String>) -> Self {
+        Self {
+            id,
+            successful: Some(false),
+            error: Some("400::channel_missing".into()),
+            ..Default::default()
         }
     }
 }

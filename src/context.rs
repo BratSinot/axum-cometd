@@ -5,8 +5,8 @@ mod subscription_task;
 pub use {build_router::*, builder::*};
 
 use crate::{
-    types::{ClientId, ClientIdGen, ClientReceiver, ClientSender, SubscriptionId},
-    CometdError, CometdResult, SendError,
+    types::{ChannelId, ClientId, ClientIdGen, ClientReceiver, ClientSender},
+    SendError,
 };
 use ahash::{AHashMap, AHashSet};
 use serde::Serialize;
@@ -18,17 +18,17 @@ use tokio::sync::{mpsc, RwLock};
 #[derive(Debug)]
 pub struct LongPoolingServiceContext {
     consts: LongPoolingServiceContextConsts,
-    subscriptions_data: RwLock<AHashMap<SubscriptionId, Subscription>>,
-    client_id_channels: Arc<RwLock<AHashMap<ClientId, ClientSender>>>,
+    channels_data: RwLock<AHashMap<ChannelId, Channel>>,
+    client_id_senders: Arc<RwLock<AHashMap<ClientId, ClientSender>>>,
 }
 
 #[derive(Debug)]
-pub(crate) struct Subscription {
+pub(crate) struct Channel {
     client_ids: AHashSet<ClientId>,
     tx: mpsc::Sender<JsonValue>,
 }
 
-impl Subscription {
+impl Channel {
     #[inline(always)]
     fn client_ids(&self) -> &AHashSet<ClientId> {
         &self.client_ids
@@ -82,22 +82,22 @@ impl LongPoolingServiceContext {
     /// # };
     /// ```
     #[inline]
-    pub async fn send<Msg>(&self, subscription: &str, msg: Msg) -> Result<(), SendError>
+    pub async fn send<Msg>(&self, channel: &str, msg: Msg) -> Result<(), SendError>
     where
         Msg: Debug + Serialize,
     {
         let tx = self
-            .subscriptions_data
+            .channels_data
             .read()
             .await
-            .get(subscription)
-            .map(Subscription::tx_cloned);
+            .get(channel)
+            .map(Channel::tx_cloned);
         if let Some(tx) = tx {
             tx.send(json!(msg)).await?;
         } else {
             tracing::trace!(
-                subscription = subscription,
-                "No `{subscription}` channel was found for message: `{msg:?}`."
+                channel = channel,
+                "No `{channel}` channel was found for message: `{msg:?}`."
             );
         }
 
@@ -108,7 +108,7 @@ impl LongPoolingServiceContext {
         static CLIENT_ID_GEN: ClientIdGen = ClientIdGen::new();
 
         let client_id = {
-            let mut client_id_channels_write_guard = self.client_id_channels.write().await;
+            let mut client_id_channels_write_guard = self.client_id_senders.write().await;
             loop {
                 let client_id = CLIENT_ID_GEN.next();
 
@@ -141,14 +141,9 @@ impl LongPoolingServiceContext {
     pub(crate) async fn subscribe(
         self: &Arc<Self>,
         client_id: ClientId,
-        subscription: &str,
+        channel: &str,
     ) -> Result<(), ClientId> {
-        if !self
-            .client_id_channels
-            .read()
-            .await
-            .contains_key(&client_id)
-        {
+        if !self.client_id_senders.read().await.contains_key(&client_id) {
             tracing::error!(
                 client_id = %client_id,
                 "Non-existing client with clientId `{client_id}`."
@@ -156,23 +151,18 @@ impl LongPoolingServiceContext {
             return Err(client_id);
         }
 
-        match self
-            .subscriptions_data
-            .write()
-            .await
-            .entry(subscription.to_string())
-        {
+        match self.channels_data.write().await.entry(channel.to_string()) {
             Entry::Occupied(o) => o.into_mut(),
             Entry::Vacant(v) => {
                 let (tx, rx) = mpsc::channel(self.consts.subscription_channel_capacity);
 
-                subscription_task::spawn(subscription.to_string(), rx, self.clone());
+                subscription_task::spawn(channel.to_string(), rx, self.clone());
                 tracing::info!(
-                    subscription = subscription,
-                    "New subscription ({subscription}) channel was registered."
+                    channel = channel,
+                    "New subscription ({channel}) channel was registered."
                 );
 
-                v.insert(Subscription {
+                v.insert(Channel {
                     client_ids: Default::default(),
                     tx,
                 })
@@ -183,8 +173,8 @@ impl LongPoolingServiceContext {
 
         tracing::info!(
             client_id = %client_id,
-            subscription = subscription,
-            "Client with clientId `{client_id}` subscribe on `{subscription}` channel."
+            channel = channel,
+            "Client with clientId `{client_id}` subscribe on `{channel}` channel."
         );
 
         Ok(())
@@ -201,33 +191,34 @@ impl LongPoolingServiceContext {
 
     #[inline]
     async fn remove_client_id_from_subscriptions(&self, client_id: &ClientId) {
-        self.subscriptions_data.write().await.retain(
-            |subscription, Subscription { client_ids, tx: _ }| {
+        self.channels_data
+            .write()
+            .await
+            .retain(|channel, Channel { client_ids, tx: _ }| {
                 if client_ids.remove(client_id) {
                     tracing::info!(
                         client_id = %client_id,
-                        subscription = subscription,
-                        "Client `{client_id}` was unsubscribed from channel `{subscription}."
+                        channel = channel,
+                        "Client `{client_id}` was unsubscribed from channel `{channel}."
                     );
                 }
 
                 if client_ids.is_empty() {
                     tracing::info!(
-                        subscription = subscription,
-                        "Channel `{subscription}` have no active subscriber. Eliminate channel."
+                        channel = channel,
+                        "Channel `{channel}` have no active subscriber. Eliminate channel."
                     );
                     false
                 } else {
                     true
                 }
-            },
-        );
+            });
     }
 
     #[inline]
     async fn remove_client_channel(&self, client_id: &ClientId) {
         if self
-            .client_id_channels
+            .client_id_senders
             .write()
             .await
             .remove(client_id)
@@ -247,7 +238,7 @@ impl LongPoolingServiceContext {
 
     #[inline]
     pub(crate) async fn check_client_id(&self, client_id: &ClientId) -> bool {
-        self.client_id_channels.read().await.contains_key(client_id)
+        self.client_id_senders.read().await.contains_key(client_id)
     }
 
     #[inline(always)]
@@ -256,23 +247,16 @@ impl LongPoolingServiceContext {
     }
 
     #[inline(always)]
-    pub(crate) fn subscriptions_data(&self) -> &RwLock<AHashMap<SubscriptionId, Subscription>> {
-        &self.subscriptions_data
+    pub(crate) fn subscriptions_data(&self) -> &RwLock<AHashMap<ChannelId, Channel>> {
+        &self.channels_data
     }
 
     #[inline]
-    pub(crate) async fn get_client_receiver(
-        &self,
-        client_id: ClientId,
-    ) -> CometdResult<ClientReceiver> {
-        let rx = self
-            .client_id_channels
+    pub(crate) async fn get_client_receiver(&self, client_id: &ClientId) -> Option<ClientReceiver> {
+        self.client_id_senders
             .read()
             .await
-            .get(&client_id)
-            .ok_or(CometdError::ClientDoesntExist(client_id))?
-            .subscribe();
-
-        Ok(rx)
+            .get(client_id)
+            .map(ClientSender::subscribe)
     }
 }

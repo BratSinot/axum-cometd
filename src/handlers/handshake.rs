@@ -13,45 +13,20 @@ pub(crate) async fn handshake(
     tracing::info!("Got handshake request: `{message:?}`.");
 
     let Message {
-        advice,
         channel,
         id,
         minimum_version,
-        supported_connection_types,
         ..
     } = message;
 
-    let ret = if channel.as_deref() != Some("/meta/handshake") {
-        Err(Message::error(
-            "no handshake channel",
-            Some("/meta/handshake".to_owned()),
-            None,
-            None,
-        ))
+    if channel.as_deref() != Some("/meta/handshake") {
+        Err(Message::session_unknown(id, channel, None).into())
     } else if minimum_version.as_deref() != Some("1.0") {
-        Err(Message::error(
-            "unsupported protocol version",
-            channel,
-            None,
-            id,
-        ))
-    } else if !supported_connection_types
-        .iter()
-        .flatten()
-        .any(|connection_type| connection_type == "long-polling")
-    {
-        Err(Message::error(
-            "unsupported connectionType",
-            channel,
-            None,
-            id,
-        ))
-    } else if advice.as_ref().and_then(Advice::interval) != Some(0) {
-        Err(Message::error("unsupported interval", channel, None, id))
+        Err(Message::wrong_minimum_version(id, minimum_version).into())
     } else {
         let client_id = context.register().await;
 
-        Ok(Message {
+        Ok(Json([Message {
             id,
             channel,
             successful: Some(true),
@@ -63,8 +38,6 @@ pub(crate) async fn handshake(
                 context.consts().interval_ms,
             )),
             ..Default::default()
-        })
-    }?;
-
-    Ok(Json([ret]))
+        }]))
+    }
 }

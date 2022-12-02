@@ -17,37 +17,23 @@ pub(crate) async fn subscribe(
     } = message;
 
     if channel.as_deref() != Some("/meta/subscribe") {
-        Err(Message::error(
-            "no subscribe channel",
-            Some("/meta/disconnect".to_owned()),
-            None,
-            None,
-        ))?;
-    };
+        Err(Message::session_unknown(id, channel, None).into())
+    } else {
+        let subscription = subscription.ok_or_else(|| Message::subscription_missing(id.clone()))?;
+        let client_id =
+            client_id.ok_or_else(|| Message::session_unknown(id.clone(), channel.clone(), None))?;
 
-    let subscription = subscription.ok_or_else(|| {
-        Message::error("empty subscription", channel.clone(), client_id, id.clone())
-    })?;
-    let client_id = client_id
-        .ok_or_else(|| Message::error("empty clientId", channel.clone(), None, id.clone()))?;
+        context
+            .subscribe(client_id, &subscription)
+            .await
+            .map_err(|_| Message::session_unknown(id.clone(), channel.clone(), None))?;
 
-    context
-        .subscribe(client_id, &subscription)
-        .await
-        .map_err(|error| {
-            Message::error(
-                error.to_string(),
-                channel.clone(),
-                Some(client_id),
-                id.clone(),
-            )
-        })?;
-
-    Ok(Json([Message {
-        id,
-        channel,
-        subscription: Some(subscription),
-        successful: Some(true),
-        ..Default::default()
-    }]))
+        Ok(Json([Message {
+            id,
+            channel,
+            subscription: Some(subscription),
+            successful: Some(true),
+            ..Default::default()
+        }]))
+    }
 }

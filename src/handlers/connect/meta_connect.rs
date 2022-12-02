@@ -1,9 +1,9 @@
 use crate::{
     error::HandlerResult,
     messages::{Advice, Message, SubscriptionMessage},
-    types::ClientId,
     LongPoolingServiceContext,
 };
+use axum::http::StatusCode;
 use serde_json::json;
 use std::time::Duration;
 
@@ -15,35 +15,26 @@ pub(super) async fn meta_connect_handle(
     let Message {
         id,
         channel,
-        connection_type,
         advice,
         client_id,
         ..
     } = message;
+    let session_unknown =
+        || Message::session_unknown(id.clone(), channel.clone(), Some(Advice::handshake()));
 
     if channel.as_deref() != Some("/meta/connect") {
-        return Err(Message::error("400::channel_missing", None, None, id).into());
+        return Err(StatusCode::INTERNAL_SERVER_ERROR.into());
     }
 
-    check_supported_connect_type(&connection_type, &channel, &client_id, &id)?;
-
-    let client_id = client_id
-        .ok_or_else(|| Message::error("empty clientId", channel.clone(), None, id.clone()))?;
+    let client_id = client_id.ok_or_else(session_unknown)?;
     let timeout = advice
         .and_then(|advice| advice.timeout)
         .unwrap_or(context.consts().timeout_ms);
 
     let mut rx = context
-        .get_client_receiver(client_id)
+        .get_client_receiver(&client_id)
         .await
-        .map_err(|error| {
-            Message::error(
-                error.to_string(),
-                channel.clone(),
-                Some(client_id),
-                id.clone(),
-            )
-        })?;
+        .ok_or_else(session_unknown)?;
 
     let SubscriptionMessage { subscription, msg } = rx
         .recv_timeout(Duration::from_millis(timeout))
@@ -58,14 +49,7 @@ pub(super) async fn meta_connect_handle(
             )),
             ..Default::default()
         })?
-        .ok_or_else(|| {
-            Message::error(
-                "channel was closed",
-                channel.clone(),
-                Some(client_id),
-                id.clone(),
-            )
-        })?;
+        .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
 
     Ok(vec![
         Message {
@@ -80,23 +64,4 @@ pub(super) async fn meta_connect_handle(
             ..Default::default()
         },
     ])
-}
-
-#[inline(always)]
-fn check_supported_connect_type(
-    connection_type: &Option<String>,
-    channel: &Option<String>,
-    client_id: &Option<ClientId>,
-    id: &Option<String>,
-) -> Result<(), Message> {
-    if connection_type.as_deref() != Some("long-polling") {
-        Err(Message::error(
-            "unsupported connectionType",
-            channel.clone(),
-            *client_id,
-            id.clone(),
-        ))
-    } else {
-        Ok(())
-    }
 }

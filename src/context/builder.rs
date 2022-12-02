@@ -75,10 +75,8 @@ impl LongPoolingServiceContextBuilder {
 
         Arc::new(LongPoolingServiceContext {
             consts,
-            subscriptions_data: RwLock::new(AHashMap::with_capacity(
-                subscriptions_storage_capacity,
-            )),
-            client_id_channels: Arc::new(RwLock::new(AHashMap::with_capacity(
+            channels_data: RwLock::new(AHashMap::with_capacity(subscriptions_storage_capacity)),
+            client_id_senders: Arc::new(RwLock::new(AHashMap::with_capacity(
                 client_ids_storage_capacity,
             ))),
         })
