@@ -1,5 +1,9 @@
+mod http_handler_error;
+
 use crate::ClientId;
 use tokio::sync::mpsc as TokioMpsc;
+
+pub(crate) use http_handler_error::*;
 
 /// Error returned by the `LongPoolingServiceContext::send`.
 #[derive(Debug, thiserror::Error)]

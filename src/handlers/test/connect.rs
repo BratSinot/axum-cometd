@@ -11,7 +11,7 @@ use tokio::time::timeout;
 #[tokio::test]
 async fn test_wrong_channel() {
     let context = LongPoolingServiceContextBuilder::new().build();
-    let Json([message]) = handlers::connect(
+    let message = handlers::connect(
         State(context.clone()),
         Json([Message {
             channel: Some("/meta/non_connect".to_owned()),
@@ -19,7 +19,9 @@ async fn test_wrong_channel() {
         }]),
     )
     .await
-    .unwrap_err();
+    .unwrap_err()
+    .into_message()
+    .unwrap();
 
     assert_eq!(
         message,
@@ -35,7 +37,7 @@ async fn test_wrong_channel() {
 #[tokio::test]
 async fn test_empty_client_id() {
     let context = LongPoolingServiceContextBuilder::new().build();
-    let Json([message]) = handlers::connect(
+    let message = handlers::connect(
         State(context.clone()),
         Json([Message {
             channel: Some("/meta/connect".to_owned()),
@@ -44,7 +46,9 @@ async fn test_empty_client_id() {
         }]),
     )
     .await
-    .unwrap_err();
+    .unwrap_err()
+    .into_message()
+    .unwrap();
 
     assert_eq!(
         message,
@@ -58,7 +62,7 @@ async fn test_client_doesnt_exist() {
         serde_json::from_value(json!("5804e4865f649fb91645030760db1f358c837af9")).unwrap();
 
     let context = LongPoolingServiceContextBuilder::new().build();
-    let Json([message]) = handlers::connect(
+    let message = handlers::connect(
         State(context.clone()),
         Json([Message {
             channel: Some("/meta/connect".to_owned()),
@@ -68,7 +72,9 @@ async fn test_client_doesnt_exist() {
         }]),
     )
     .await
-    .unwrap_err();
+    .unwrap_err()
+    .into_message()
+    .unwrap();
 
     assert_eq!(
         message,
@@ -87,7 +93,7 @@ async fn test_wrong_connect_type() {
         Some(serde_json::from_value(json!("5804e4865f649fb91645030760db1f358c837af9")).unwrap());
 
     let context = LongPoolingServiceContextBuilder::new().build();
-    let Json([message]) = handlers::connect(
+    let message = handlers::connect(
         State(context.clone()),
         Json([Message {
             channel: Some("/meta/connect".to_owned()),
@@ -97,7 +103,9 @@ async fn test_wrong_connect_type() {
         }]),
     )
     .await
-    .unwrap_err();
+    .unwrap_err()
+    .into_message()
+    .unwrap();
 
     assert_eq!(
         message,
@@ -116,7 +124,7 @@ async fn test_reconnect() {
     let client_id = context.register().await;
     context.subscribe(client_id, "FOO_BAR").await.unwrap();
 
-    let Json([message]) = timeout(
+    let message = timeout(
         Duration::from_millis(1000),
         handlers::connect(
             State(context.clone()),
@@ -135,7 +143,9 @@ async fn test_reconnect() {
     )
     .await
     .unwrap()
-    .unwrap_err();
+    .unwrap_err()
+    .into_message()
+    .unwrap();
 
     assert_eq!(
         message,
@@ -160,7 +170,7 @@ async fn test_channel_was_closed() {
     let client_id = context.register().await;
     context.subscribe(client_id, "FOO_BAR").await.unwrap();
 
-    let ((), Json([message])) = tokio::join!(
+    let ((), message) = tokio::join!(
         async {
             tokio::time::sleep(Duration::from_millis(100)).await;
             context.unsubscribe(client_id).await;
@@ -182,6 +192,8 @@ async fn test_channel_was_closed() {
             )
             .await
             .unwrap_err()
+            .into_message()
+            .unwrap()
         }
     );
 
