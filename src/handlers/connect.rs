@@ -1,4 +1,5 @@
 use crate::{
+    error::HandlerResult,
     messages::{Advice, Message, SubscriptionMessage},
     types::ClientId,
     LongPoolingServiceContext,
@@ -10,7 +11,7 @@ use std::{sync::Arc, time::Duration};
 pub(crate) async fn connect(
     State(context): State<Arc<LongPoolingServiceContext>>,
     Json([message]): Json<[Message; 1]>,
-) -> Result<Json<[Message; 2]>, Json<[Message; 1]>> {
+) -> HandlerResult<Json<[Message; 2]>> {
     tracing::info!("Got connect request: `{message:?}`.");
 
     let Message {
@@ -23,12 +24,12 @@ pub(crate) async fn connect(
     } = message;
 
     if channel.as_deref() != Some("/meta/connect") {
-        return Err(Json([Message::error(
+        Err(Message::error(
             "no connect channel",
             Some("/meta/connect".to_owned()),
             None,
             None,
-        )]));
+        ))?;
     }
 
     check_supported_connect_type(&connection_type, &channel, &client_id, &id)?;

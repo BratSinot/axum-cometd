@@ -1,11 +1,11 @@
-use crate::{messages::Message, LongPoolingServiceContext};
+use crate::{error::HandlerResult, messages::Message, LongPoolingServiceContext};
 use axum::{extract::State, Json};
 use std::sync::Arc;
 
 pub(crate) async fn subscribe(
     State(context): State<Arc<LongPoolingServiceContext>>,
     Json([message]): Json<[Message; 1]>,
-) -> Result<Json<[Message; 1]>, Json<[Message; 1]>> {
+) -> HandlerResult<Json<[Message; 1]>> {
     tracing::info!("Got subscribe request: `{message:?}`.");
 
     let Message {
@@ -17,12 +17,12 @@ pub(crate) async fn subscribe(
     } = message;
 
     if channel.as_deref() != Some("/meta/subscribe") {
-        return Err(Json([Message::error(
+        Err(Message::error(
             "no subscribe channel",
             Some("/meta/disconnect".to_owned()),
             None,
             None,
-        )]));
+        ))?;
     };
 
     let subscription = subscription.ok_or_else(|| {
