@@ -17,13 +17,13 @@ use tokio::sync::{mpsc, RwLock};
 /// Context for sending messages to channels.
 #[derive(Debug)]
 pub struct LongPoolingServiceContext {
-    pub(crate) consts: LongPoolingServiceContextConsts,
+    consts: LongPoolingServiceContextConsts,
     subscriptions_data: RwLock<AHashMap<SubscriptionId, Subscription>>,
     client_id_channels: Arc<RwLock<AHashMap<ClientId, ClientSender>>>,
 }
 
 #[derive(Debug)]
-struct Subscription {
+pub(crate) struct Subscription {
     client_ids: AHashSet<ClientId>,
     tx: mpsc::Sender<JsonValue>,
 }
@@ -32,6 +32,11 @@ impl Subscription {
     #[inline(always)]
     fn client_ids(&self) -> &AHashSet<ClientId> {
         &self.client_ids
+    }
+
+    #[inline(always)]
+    pub(crate) fn tx(&self) -> &mpsc::Sender<JsonValue> {
+        &self.tx
     }
 
     #[inline(always)]
@@ -77,7 +82,7 @@ impl LongPoolingServiceContext {
     /// # };
     /// ```
     #[inline]
-    pub async fn send<Msg>(&self, topic: &str, msg: Msg) -> Result<(), SendError>
+    pub async fn send<Msg>(&self, subscription: &str, msg: Msg) -> Result<(), SendError>
     where
         Msg: Debug + Serialize,
     {
@@ -85,14 +90,14 @@ impl LongPoolingServiceContext {
             .subscriptions_data
             .read()
             .await
-            .get(topic)
+            .get(subscription)
             .map(Subscription::tx_cloned);
         if let Some(tx) = tx {
             tx.send(json!(msg)).await?;
         } else {
             tracing::trace!(
-                topic = topic,
-                "No `{topic}` channel was found for message: `{msg:?}`."
+                subscription = subscription,
+                "No `{subscription}` channel was found for message: `{msg:?}`."
             );
         }
 
@@ -238,6 +243,21 @@ impl LongPoolingServiceContext {
                 "Can't find client `{client_id}`. Can't unsubscribed."
             );
         }
+    }
+
+    #[inline]
+    pub(crate) async fn check_client_id(&self, client_id: &ClientId) -> bool {
+        self.client_id_channels.read().await.contains_key(client_id)
+    }
+
+    #[inline(always)]
+    pub(crate) fn consts(&self) -> &LongPoolingServiceContextConsts {
+        &self.consts
+    }
+
+    #[inline(always)]
+    pub(crate) fn subscriptions_data(&self) -> &RwLock<AHashMap<SubscriptionId, Subscription>> {
+        &self.subscriptions_data
     }
 
     #[inline]

@@ -35,21 +35,19 @@ pub(crate) fn spawn(
                     "Message `{msg:?}` from channel `{subscription}` was sent to client `{client_id}`."
                 );
 
-                match client_channel
+                if client_channel
                     .send(SubscriptionMessage {
                         subscription: subscription.clone(),
                         msg: msg.clone(),
                     })
                     .await
+                    .is_err()
                 {
-                    Ok(()) => {}
-                    Err(_) => {
-                        tracing::error!(
-                            client_id = %client_id,
-                            subscription = subscription,
-                            "Channel was closed!"
-                        );
-                    }
+                    tracing::error!(
+                        client_id = %client_id,
+                        subscription = subscription,
+                        "Channel was closed!"
+                    );
                 }
             }
         }
