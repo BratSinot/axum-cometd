@@ -25,7 +25,7 @@ async fn test_different_paths() {
         .client_channel_capacity(10)
         .subscription_channel_capacity(10);
     let _ = format!("{builder:?}");
-    let context = builder.build::<serde_json::Value>();
+    let context = builder.build();
 
     let builder = RouterBuilder::new()
         .subscribe_base_path("/sub")

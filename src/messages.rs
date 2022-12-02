@@ -72,9 +72,9 @@ pub(crate) struct Message {
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct SubscriptionMessage<Msg> {
+pub(crate) struct SubscriptionMessage {
     pub(crate) subscription: SubscriptionId,
-    pub(crate) msg: Msg,
+    pub(crate) msg: JsonValue,
 }
 
 impl Message {

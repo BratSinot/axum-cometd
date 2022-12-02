@@ -11,26 +11,23 @@ use tokio::sync::Notify;
 use tokio_util::sync::CancellationToken;
 
 #[derive(Debug)]
-pub(crate) struct ClientSender<Msg> {
+pub(crate) struct ClientSender {
     stop_signal: CancellationToken,
     start_timeout: Arc<Notify>,
     cancel_timeout: Arc<Notify>,
-    tx: Sender<SubscriptionMessage<Msg>>,
-    inactive_rx: InactiveReceiver<SubscriptionMessage<Msg>>,
+    tx: Sender<SubscriptionMessage>,
+    inactive_rx: InactiveReceiver<SubscriptionMessage>,
 }
 
-impl<Msg> ClientSender<Msg> {
+impl ClientSender {
     #[inline]
     pub(crate) fn create(
-        context: Arc<LongPoolingServiceContext<Msg>>,
+        context: Arc<LongPoolingServiceContext>,
         client_id: ClientId,
         timeout: Duration,
-        tx: Sender<SubscriptionMessage<Msg>>,
-        inactive_rx: InactiveReceiver<SubscriptionMessage<Msg>>,
-    ) -> Self
-    where
-        Msg: Send + Sync + 'static,
-    {
+        tx: Sender<SubscriptionMessage>,
+        inactive_rx: InactiveReceiver<SubscriptionMessage>,
+    ) -> Self {
         let stop_signal = CancellationToken::new();
         let start_timeout = Arc::new(Notify::new());
         let cancel_timeout = Arc::new(Notify::new());
@@ -56,7 +53,7 @@ impl<Msg> ClientSender<Msg> {
     }
 
     #[inline]
-    pub(crate) fn subscribe(&self) -> ClientReceiver<Msg> {
+    pub(crate) fn subscribe(&self) -> ClientReceiver {
         self.cancel_timeout.notify_waiters();
 
         let start_timeout = self.start_timeout.clone();
@@ -68,11 +65,8 @@ impl<Msg> ClientSender<Msg> {
     #[inline]
     pub(crate) async fn send(
         &self,
-        msg: SubscriptionMessage<Msg>,
-    ) -> Result<(), SendError<SubscriptionMessage<Msg>>>
-    where
-        Msg: Clone,
-    {
+        msg: SubscriptionMessage,
+    ) -> Result<(), SendError<SubscriptionMessage>> {
         match self.tx.try_broadcast(msg) {
             Ok(None) | Err(TrySendError::Inactive(_)) => Ok(()),
             Ok(Some(msg)) | Err(TrySendError::Full(msg)) => match self.tx.broadcast(msg).await {
@@ -85,7 +79,7 @@ impl<Msg> ClientSender<Msg> {
     }
 }
 
-impl<Msg> Drop for ClientSender<Msg> {
+impl Drop for ClientSender {
     fn drop(&mut self) {
         self.stop_signal.cancel();
     }

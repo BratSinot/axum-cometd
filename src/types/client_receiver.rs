@@ -4,14 +4,14 @@ use std::{fmt::Debug, sync::Arc, time::Duration};
 use tokio::{sync::Notify, time};
 
 #[derive(Debug)]
-pub(crate) struct ClientReceiver<Msg> {
+pub(crate) struct ClientReceiver {
     start_timeout: Arc<Notify>,
-    rx: Receiver<SubscriptionMessage<Msg>>,
+    rx: Receiver<SubscriptionMessage>,
 }
 
-impl<Msg> ClientReceiver<Msg> {
+impl ClientReceiver {
     #[inline(always)]
-    pub(crate) fn new(start_timeout: Arc<Notify>, rx: Receiver<SubscriptionMessage<Msg>>) -> Self {
+    pub(crate) fn new(start_timeout: Arc<Notify>, rx: Receiver<SubscriptionMessage>) -> Self {
         Self { start_timeout, rx }
     }
 
@@ -19,10 +19,7 @@ impl<Msg> ClientReceiver<Msg> {
     pub(crate) async fn recv_timeout(
         &mut self,
         duration: Duration,
-    ) -> Result<Option<SubscriptionMessage<Msg>>, time::error::Elapsed>
-    where
-        Msg: Clone,
-    {
+    ) -> Result<Option<SubscriptionMessage>, time::error::Elapsed> {
         time::timeout(duration, async {
             match self.rx.recv().await {
                 Ok(data) => Some(data),
@@ -36,7 +33,7 @@ impl<Msg> ClientReceiver<Msg> {
     }
 }
 
-impl<Msg> Drop for ClientReceiver<Msg> {
+impl Drop for ClientReceiver {
     fn drop(&mut self) {
         self.start_timeout.notify_waiters();
     }
