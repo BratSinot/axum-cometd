@@ -13,7 +13,7 @@ async fn test_wrong_channel() {
     let context = LongPoolingServiceContextBuilder::new().build();
     let message = handlers::connect(
         State(context.clone()),
-        Json([Message {
+        Json(vec![Message {
             channel: Some("/meta/non_connect".to_owned()),
             ..Default::default()
         }]),
@@ -25,12 +25,7 @@ async fn test_wrong_channel() {
 
     assert_eq!(
         message,
-        Message::error(
-            "no connect channel",
-            Some("/meta/connect".into()),
-            None,
-            None
-        )
+        Message::error("400::channel_missing", None, None, None)
     );
 }
 
@@ -39,7 +34,7 @@ async fn test_empty_client_id() {
     let context = LongPoolingServiceContextBuilder::new().build();
     let message = handlers::connect(
         State(context.clone()),
-        Json([Message {
+        Json(vec![Message {
             channel: Some("/meta/connect".to_owned()),
             connection_type: Some("long-polling".into()),
             ..Default::default()
@@ -64,7 +59,7 @@ async fn test_client_doesnt_exist() {
     let context = LongPoolingServiceContextBuilder::new().build();
     let message = handlers::connect(
         State(context.clone()),
-        Json([Message {
+        Json(vec![Message {
             channel: Some("/meta/connect".to_owned()),
             connection_type: Some("long-polling".into()),
             client_id: Some(client_id),
@@ -95,7 +90,7 @@ async fn test_wrong_connect_type() {
     let context = LongPoolingServiceContextBuilder::new().build();
     let message = handlers::connect(
         State(context.clone()),
-        Json([Message {
+        Json(vec![Message {
             channel: Some("/meta/connect".to_owned()),
             connection_type: Some("non-long-polling".into()),
             client_id,
@@ -128,7 +123,7 @@ async fn test_reconnect() {
         Duration::from_millis(1000),
         handlers::connect(
             State(context.clone()),
-            Json([Message {
+            Json(vec![Message {
                 id: Some("4".into()),
                 channel: Some("/meta/connect".to_owned()),
                 connection_type: Some("long-polling".into()),
@@ -178,7 +173,7 @@ async fn test_channel_was_closed() {
         async {
             handlers::connect(
                 State(context.clone()),
-                Json([Message {
+                Json(vec![Message {
                     id: Some("4".into()),
                     channel: Some("/meta/connect".to_owned()),
                     connection_type: Some("long-polling".into()),
