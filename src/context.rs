@@ -9,36 +9,38 @@ use crate::{
     CometdError, CometdResult, SendError,
 };
 use ahash::{AHashMap, AHashSet};
+use serde::Serialize;
+use serde_json::{json, Value as JsonValue};
 use std::{collections::hash_map::Entry, fmt::Debug, sync::Arc, time::Duration};
 use tokio::sync::{mpsc, RwLock};
 
 /// Context for sending messages to channels.
 #[derive(Debug)]
-pub struct LongPoolingServiceContext<Msg> {
+pub struct LongPoolingServiceContext {
     pub(crate) consts: LongPoolingServiceContextConsts,
-    subscriptions_data: RwLock<AHashMap<SubscriptionId, Subscription<Msg>>>,
-    client_id_channels: Arc<RwLock<AHashMap<ClientId, ClientSender<Msg>>>>,
+    subscriptions_data: RwLock<AHashMap<SubscriptionId, Subscription>>,
+    client_id_channels: Arc<RwLock<AHashMap<ClientId, ClientSender>>>,
 }
 
 #[derive(Debug)]
-struct Subscription<Msg> {
+struct Subscription {
     client_ids: AHashSet<ClientId>,
-    tx: mpsc::Sender<Msg>,
+    tx: mpsc::Sender<JsonValue>,
 }
 
-impl<Msg> Subscription<Msg> {
+impl Subscription {
     #[inline(always)]
     fn client_ids(&self) -> &AHashSet<ClientId> {
         &self.client_ids
     }
 
     #[inline(always)]
-    fn tx_cloned(&self) -> mpsc::Sender<Msg> {
+    fn tx_cloned(&self) -> mpsc::Sender<JsonValue> {
         self.tx.clone()
     }
 }
 
-impl<Msg> LongPoolingServiceContext<Msg> {
+impl LongPoolingServiceContext {
     /// Send message to channel.
     ///
     /// # Example
@@ -71,13 +73,13 @@ impl<Msg> LongPoolingServiceContext<Msg> {
     ///             .await?;
     ///         tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
     ///     }
-    /// # Ok::<(), axum_cometd::SendError<Data>>(())
+    /// # Ok::<(), axum_cometd::SendError>(())
     /// # };
     /// ```
     #[inline]
-    pub async fn send(&self, topic: &str, msg: Msg) -> Result<(), SendError<Msg>>
+    pub async fn send<Msg>(&self, topic: &str, msg: Msg) -> Result<(), SendError>
     where
-        Msg: Debug,
+        Msg: Debug + Serialize,
     {
         let tx = self
             .subscriptions_data
@@ -86,7 +88,7 @@ impl<Msg> LongPoolingServiceContext<Msg> {
             .get(topic)
             .map(Subscription::tx_cloned);
         if let Some(tx) = tx {
-            tx.send(msg).await?;
+            tx.send(json!(msg)).await?;
         } else {
             tracing::trace!(
                 topic = topic,
@@ -97,10 +99,7 @@ impl<Msg> LongPoolingServiceContext<Msg> {
         Ok(())
     }
 
-    pub(crate) async fn register(self: &Arc<Self>) -> ClientId
-    where
-        Msg: Send + Sync + 'static,
-    {
+    pub(crate) async fn register(self: &Arc<Self>) -> ClientId {
         static CLIENT_ID_GEN: ClientIdGen = ClientIdGen::new();
 
         let client_id = {
@@ -138,10 +137,7 @@ impl<Msg> LongPoolingServiceContext<Msg> {
         self: &Arc<Self>,
         client_id: ClientId,
         subscription: &str,
-    ) -> Result<(), ClientId>
-    where
-        Msg: Debug + Clone + Send + Sync + 'static,
-    {
+    ) -> Result<(), ClientId> {
         if !self
             .client_id_channels
             .read()
@@ -163,7 +159,7 @@ impl<Msg> LongPoolingServiceContext<Msg> {
         {
             Entry::Occupied(o) => o.into_mut(),
             Entry::Vacant(v) => {
-                let (tx, rx) = mpsc::channel::<Msg>(self.consts.subscription_channel_capacity);
+                let (tx, rx) = mpsc::channel(self.consts.subscription_channel_capacity);
 
                 subscription_task::spawn(subscription.to_string(), rx, self.clone());
                 tracing::info!(
@@ -248,7 +244,7 @@ impl<Msg> LongPoolingServiceContext<Msg> {
     pub(crate) async fn get_client_receiver(
         &self,
         client_id: ClientId,
-    ) -> CometdResult<ClientReceiver<Msg>> {
+    ) -> CometdResult<ClientReceiver> {
         let rx = self
             .client_id_channels
             .read()

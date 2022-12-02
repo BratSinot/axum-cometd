@@ -4,11 +4,11 @@ use tokio::sync::mpsc as TokioMpsc;
 /// Error returned by the `LongPoolingServiceContext::send`.
 #[derive(Debug, thiserror::Error)]
 #[error("internal error, channel closed")]
-pub struct SendError<Msg>(pub Msg);
+pub struct SendError;
 
-impl<Msg> From<TokioMpsc::error::SendError<Msg>> for SendError<Msg> {
-    fn from(TokioMpsc::error::SendError(msg): TokioMpsc::error::SendError<Msg>) -> Self {
-        Self(msg)
+impl<Msg> From<TokioMpsc::error::SendError<Msg>> for SendError {
+    fn from(TokioMpsc::error::SendError(_): TokioMpsc::error::SendError<Msg>) -> Self {
+        Self
     }
 }
 

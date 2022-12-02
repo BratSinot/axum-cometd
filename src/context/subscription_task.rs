@@ -2,16 +2,15 @@ use crate::{
     context::{LongPoolingServiceContext, Subscription},
     messages::SubscriptionMessage,
 };
-use std::{fmt::Debug, sync::Arc};
+use serde_json::Value as JsonValue;
+use std::sync::Arc;
 use tokio::sync::mpsc;
 
-pub(crate) fn spawn<Msg>(
+pub(crate) fn spawn(
     subscription: String,
-    mut rx: mpsc::Receiver<Msg>,
-    inner: Arc<LongPoolingServiceContext<Msg>>,
-) where
-    Msg: Debug + Clone + Send + Sync + 'static,
-{
+    mut rx: mpsc::Receiver<JsonValue>,
+    inner: Arc<LongPoolingServiceContext>,
+) {
     tokio::task::spawn(async move {
         while let Some(msg) = rx.recv().await {
             tracing::debug!(

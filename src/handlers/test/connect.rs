@@ -4,13 +4,13 @@ use crate::{
     LongPoolingServiceContextBuilder,
 };
 use axum::{extract::State, Json};
-use serde_json::{json, Value as JsonValue};
+use serde_json::json;
 use std::time::Duration;
 use tokio::time::timeout;
 
 #[tokio::test]
 async fn test_wrong_channel() {
-    let context = LongPoolingServiceContextBuilder::new().build::<JsonValue>();
+    let context = LongPoolingServiceContextBuilder::new().build();
     let Json([message]) = handlers::connect(
         State(context.clone()),
         Json([Message {
@@ -34,7 +34,7 @@ async fn test_wrong_channel() {
 
 #[tokio::test]
 async fn test_empty_client_id() {
-    let context = LongPoolingServiceContextBuilder::new().build::<JsonValue>();
+    let context = LongPoolingServiceContextBuilder::new().build();
     let Json([message]) = handlers::connect(
         State(context.clone()),
         Json([Message {
@@ -57,7 +57,7 @@ async fn test_client_doesnt_exist() {
     let client_id =
         serde_json::from_value(json!("5804e4865f649fb91645030760db1f358c837af9")).unwrap();
 
-    let context = LongPoolingServiceContextBuilder::new().build::<JsonValue>();
+    let context = LongPoolingServiceContextBuilder::new().build();
     let Json([message]) = handlers::connect(
         State(context.clone()),
         Json([Message {
@@ -86,7 +86,7 @@ async fn test_wrong_connect_type() {
     let client_id =
         Some(serde_json::from_value(json!("5804e4865f649fb91645030760db1f358c837af9")).unwrap());
 
-    let context = LongPoolingServiceContextBuilder::new().build::<JsonValue>();
+    let context = LongPoolingServiceContextBuilder::new().build();
     let Json([message]) = handlers::connect(
         State(context.clone()),
         Json([Message {
@@ -112,7 +112,7 @@ async fn test_wrong_connect_type() {
 
 #[tokio::test]
 async fn test_reconnect() {
-    let context = LongPoolingServiceContextBuilder::new().build::<JsonValue>();
+    let context = LongPoolingServiceContextBuilder::new().build();
     let client_id = context.register().await;
     context.subscribe(client_id, "FOO_BAR").await.unwrap();
 
@@ -156,7 +156,7 @@ async fn test_reconnect() {
 
 #[tokio::test]
 async fn test_channel_was_closed() {
-    let context = LongPoolingServiceContextBuilder::new().build::<JsonValue>();
+    let context = LongPoolingServiceContextBuilder::new().build();
     let client_id = context.register().await;
     context.subscribe(client_id, "FOO_BAR").await.unwrap();
 

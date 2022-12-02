@@ -3,15 +3,12 @@ use crate::{
     LongPoolingServiceContext,
 };
 use axum::{extract::State, Json};
-use std::{fmt::Debug, sync::Arc};
+use std::sync::Arc;
 
-pub(crate) async fn handshake<Msg>(
-    State(context): State<Arc<LongPoolingServiceContext<Msg>>>,
+pub(crate) async fn handshake(
+    State(context): State<Arc<LongPoolingServiceContext>>,
     Json([message]): Json<[Message; 1]>,
-) -> Result<Json<[Message; 1]>, Json<[Message; 1]>>
-where
-    Msg: Debug + Send + Sync + 'static,
-{
+) -> Result<Json<[Message; 1]>, Json<[Message; 1]>> {
     tracing::info!("Got handshake request: `{message:?}`.");
 
     let Message {

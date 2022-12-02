@@ -1,14 +1,11 @@
 use crate::{messages::Message, LongPoolingServiceContext};
 use axum::{extract::State, Json};
-use std::{fmt::Debug, sync::Arc};
+use std::sync::Arc;
 
-pub(crate) async fn subscribe<Msg>(
-    State(context): State<Arc<LongPoolingServiceContext<Msg>>>,
+pub(crate) async fn subscribe(
+    State(context): State<Arc<LongPoolingServiceContext>>,
     Json([message]): Json<[Message; 1]>,
-) -> Result<Json<[Message; 1]>, Json<[Message; 1]>>
-where
-    Msg: Debug + Clone + Send + Sync + 'static,
-{
+) -> Result<Json<[Message; 1]>, Json<[Message; 1]>> {
     tracing::info!("Got subscribe request: `{message:?}`.");
 
     let Message {

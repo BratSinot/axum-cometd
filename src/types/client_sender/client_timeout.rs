@@ -4,16 +4,14 @@ use std::{sync::Arc, time::Duration};
 use tokio::{select, sync::Notify, time};
 use tokio_util::sync::CancellationToken;
 
-pub(super) fn spawn<Msg>(
-    context: Arc<LongPoolingServiceContext<Msg>>,
+pub(super) fn spawn(
+    context: Arc<LongPoolingServiceContext>,
     client_id: ClientId,
     timeout: Duration,
     stop_signal: CancellationToken,
     start_timeout: Arc<Notify>,
     cancel_timeout: Arc<Notify>,
-) where
-    Msg: Send + Sync + 'static,
-{
+) {
     tokio::task::spawn(async move {
         while wait_until_client_disconnect(&stop_signal, &start_timeout).await {
             select! {

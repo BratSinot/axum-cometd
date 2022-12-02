@@ -4,17 +4,13 @@ use crate::{
     LongPoolingServiceContext,
 };
 use axum::{extract::State, Json};
-use serde::Serialize;
 use serde_json::json;
-use std::{fmt::Debug, sync::Arc, time::Duration};
+use std::{sync::Arc, time::Duration};
 
-pub(crate) async fn connect<Msg>(
-    State(context): State<Arc<LongPoolingServiceContext<Msg>>>,
+pub(crate) async fn connect(
+    State(context): State<Arc<LongPoolingServiceContext>>,
     Json([message]): Json<[Message; 1]>,
-) -> Result<Json<[Message; 2]>, Json<[Message; 1]>>
-where
-    Msg: Debug + Clone + Serialize,
-{
+) -> Result<Json<[Message; 2]>, Json<[Message; 1]>> {
     tracing::info!("Got connect request: `{message:?}`.");
 
     let Message {

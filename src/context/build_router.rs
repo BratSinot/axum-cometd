@@ -1,6 +1,5 @@
 use crate::{handlers::*, LongPoolingServiceContext};
 use axum::{routing::post, Router};
-use serde::Serialize;
 use std::{fmt::Debug, sync::Arc, time::Duration};
 use tower_http::timeout::TimeoutLayer;
 
@@ -38,14 +37,11 @@ impl RouterBuilder {
     /// ```rust
     /// use axum_cometd::RouterBuilder;
     ///
-    /// # let context = axum_cometd::LongPoolingServiceContextBuilder::new().build::<()>();
+    /// # let context = axum_cometd::LongPoolingServiceContextBuilder::new().build();
     /// let app = RouterBuilder::new().build(&context);
     /// ```
     #[inline]
-    pub fn build<Msg>(self, context: &Arc<LongPoolingServiceContext<Msg>>) -> Router
-    where
-        Msg: Debug + Clone + Serialize + Send + Sync + 'static,
-    {
+    pub fn build(self, context: &Arc<LongPoolingServiceContext>) -> Router {
         let Self {
             subscribe_base_path,
             handshake_base_path,
@@ -54,18 +50,12 @@ impl RouterBuilder {
         } = self;
 
         Router::new()
-            .route(subscribe_base_path, post(subscribe::<Msg>))
-            .route(
-                &format!("{handshake_base_path}/handshake"),
-                post(handshake::<Msg>),
-            )
-            .route(
-                &format!("{connect_base_path}/connect"),
-                post(connect::<Msg>),
-            )
+            .route(subscribe_base_path, post(subscribe))
+            .route(&format!("{handshake_base_path}/handshake"), post(handshake))
+            .route(&format!("{connect_base_path}/connect"), post(connect))
             .route(
                 &format!("{disconnect_base_path}/disconnect"),
-                post(disconnect::<Msg>),
+                post(disconnect),
             )
             .with_state(context.clone())
             .layer(TimeoutLayer::new(Duration::from_millis(
@@ -79,7 +69,7 @@ impl RouterBuilder {
     /// ```rust
     /// use axum_cometd::RouterBuilder;
     ///
-    /// # let context = axum_cometd::LongPoolingServiceContextBuilder::new().build::<()>();
+    /// # let context = axum_cometd::LongPoolingServiceContextBuilder::new().build();
     /// let app = RouterBuilder::new()
     ///     // Ex: `/` -> `/bar`
     ///     .subscribe_base_path("/bar")
@@ -99,7 +89,7 @@ impl RouterBuilder {
     /// ```rust
     /// use axum_cometd::RouterBuilder;
     ///
-    /// # let context = axum_cometd::LongPoolingServiceContextBuilder::new().build::<()>();
+    /// # let context = axum_cometd::LongPoolingServiceContextBuilder::new().build();
     /// let app = RouterBuilder::new()
     ///     // Ex: `/handshake` -> `/bar/handshake`
     ///     .handshake_base_path("/bar")
@@ -119,7 +109,7 @@ impl RouterBuilder {
     /// ```rust
     /// use axum_cometd::RouterBuilder;
     ///
-    /// # let context = axum_cometd::LongPoolingServiceContextBuilder::new().build::<()>();
+    /// # let context = axum_cometd::LongPoolingServiceContextBuilder::new().build();
     /// let app = RouterBuilder::new()
     ///     // Ex: `/connect` -> `/bar/connect`
     ///     .connect_base_path("/bar")
@@ -139,7 +129,7 @@ impl RouterBuilder {
     /// ```rust
     /// use axum_cometd::RouterBuilder;
     ///
-    /// # let context = axum_cometd::LongPoolingServiceContextBuilder::new().build::<()>();
+    /// # let context = axum_cometd::LongPoolingServiceContextBuilder::new().build();
     /// let app = RouterBuilder::new()
     ///     // Ex: `/disconnect` -> `/bar/disconnect`
     ///     .disconnect_base_path("/bar")
