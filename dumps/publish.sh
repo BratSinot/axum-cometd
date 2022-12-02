@@ -16,7 +16,7 @@ while true; do
   curl \
     --silent \
     -b cookie.pub \
-    -d "[{\"id\":\"200\",\"channel\":\"/topic0\",\"data\":{\"msg\":\"Hello\"},\"clientId\":\"$clientId\"}]" \
+    -d "[{\"id\":\"200\",\"channel\":\"/topic0\",\"data\":{\"msg\":\"Hello\"},\"clientId\":\"$clientId\"},{\"id\":\"200\",\"channel\":\"/topic0\",\"data\":{\"msg\":\"QWER\"},\"clientId\":\"$clientId\"}]" \
     -H 'Content-Type: application/json' \
     '[::1]:1025/notifications/connect'
   sleep 1
