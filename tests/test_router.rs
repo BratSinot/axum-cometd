@@ -1,8 +1,10 @@
 use axum::Router;
 use axum_cometd::{LongPoolingServiceContextBuilder, RouterBuilder};
 use serde_json::{json, Value as JsonValue};
+use std::sync::Arc;
+use std::time::Duration;
 use test_common::*;
-use tokio::try_join;
+use tokio::{sync::Mutex, try_join};
 
 async fn receive_message_and_extract_data(app: &Router, client_id: &str) -> JsonValue {
     let response = receive_message(app, "/root/conn", client_id).await;
@@ -63,4 +65,47 @@ async fn test_different_paths() {
             "successful":true
         }])
     );
+}
+
+#[tokio::test]
+async fn test_callbacks() {
+    let client_id_check = Arc::new(Mutex::new(String::new()));
+    let removed_client_id = Arc::new(Mutex::new(String::new()));
+
+    let context = LongPoolingServiceContextBuilder::new()
+        .timeout_ms(5000)
+        .max_interval_ms(60_000)
+        .client_channel_capacity(10)
+        .subscription_channel_capacity(10)
+        .async_session_added({
+            let client_id_check = client_id_check.clone();
+            move |(context, client_id, _)| {
+                let client_id_check = client_id_check.clone();
+                async move {
+                    *client_id_check.lock().await = client_id.to_string();
+                    tokio::spawn(async move {
+                        context.unsubscribe(client_id).await;
+                    });
+                }
+            }
+        })
+        .async_session_removed({
+            let removed_client_id = removed_client_id.clone();
+            move |(_, client_id)| {
+                let removed_client_id = removed_client_id.clone();
+                async move {
+                    *removed_client_id.lock().await = client_id.to_string();
+                }
+            }
+        })
+        .build();
+
+    let app = RouterBuilder::new().build(&context);
+
+    let response_client_id = get_client_id(&app, "", 0).await;
+
+    tokio::time::sleep(Duration::from_secs(1)).await;
+
+    assert_eq!(*client_id_check.lock().await, response_client_id);
+    assert_eq!(*removed_client_id.lock().await, response_client_id);
 }
