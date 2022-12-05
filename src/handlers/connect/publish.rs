@@ -11,7 +11,7 @@ pub(super) async fn publish_handle(
         message
             .channel
             .as_ref()
-            .map(|channel| channel.contains("/meta/") && channel != "/meta/connect")
+            .map(|channel| channel.contains("/meta/"))
             .unwrap_or(false)
     }) {
         Err(StatusCode::BAD_REQUEST)
