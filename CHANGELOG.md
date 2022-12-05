@@ -12,6 +12,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 - Add support for client message publishing.
 
+- Add session added / removed callbacks.
+
 ### Change
 
 - Remove `Msg` generic from `LongPoolingServiceContext`. `LongPoolingServiceContext::send` is generic now.

@@ -3,11 +3,12 @@ use crate::{
     messages::{Advice, Message},
     LongPoolingServiceContext,
 };
-use axum::{extract::State, Json};
+use axum::{extract::State, http::HeaderMap, Json};
 use std::sync::Arc;
 
 pub(crate) async fn handshake(
     State(context): State<Arc<LongPoolingServiceContext>>,
+    headers: HeaderMap,
     Json([message]): Json<[Message; 1]>,
 ) -> HandlerResult<Json<[Message; 1]>> {
     tracing::info!("Got handshake request: `{message:?}`.");
@@ -24,7 +25,7 @@ pub(crate) async fn handshake(
     } else if minimum_version.as_deref() != Some("1.0") {
         Err(Message::wrong_minimum_version(id, minimum_version).into())
     } else {
-        let client_id = context.register().await;
+        let client_id = context.register(headers).await;
 
         Ok(Json([Message {
             id,

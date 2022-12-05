@@ -5,10 +5,11 @@ mod subscription_task;
 pub use {build_router::*, builder::*};
 
 use crate::{
-    types::{ChannelId, ClientId, ClientIdGen, ClientReceiver, ClientSender},
+    types::{Callback, ChannelId, ClientId, ClientIdGen, ClientReceiver, ClientSender},
     SendError,
 };
 use ahash::{AHashMap, AHashSet};
+use axum::http::HeaderMap;
 use serde::Serialize;
 use serde_json::{json, Value as JsonValue};
 use std::{collections::hash_map::Entry, fmt::Debug, sync::Arc, time::Duration};
@@ -17,6 +18,9 @@ use tokio::sync::{mpsc, RwLock};
 /// Context for sending messages to channels.
 #[derive(Debug)]
 pub struct LongPoolingServiceContext {
+    session_added: Callback<(Arc<LongPoolingServiceContext>, ClientId, HeaderMap)>,
+    session_removed: Callback<(Arc<LongPoolingServiceContext>, ClientId)>,
+
     consts: LongPoolingServiceContextConsts,
     channels_data: RwLock<AHashMap<ChannelId, Channel>>,
     client_id_senders: Arc<RwLock<AHashMap<ClientId, ClientSender>>>,
@@ -104,7 +108,7 @@ impl LongPoolingServiceContext {
         Ok(())
     }
 
-    pub(crate) async fn register(self: &Arc<Self>) -> ClientId {
+    pub(crate) async fn register(self: &Arc<Self>, headers: HeaderMap) -> ClientId {
         static CLIENT_ID_GEN: ClientIdGen = ClientIdGen::new();
 
         let client_id = {
@@ -129,6 +133,10 @@ impl LongPoolingServiceContext {
                 }
             }
         };
+
+        self.session_added
+            .call((self.clone(), client_id, headers))
+            .await;
 
         tracing::info!(
             client_id = %client_id,
@@ -182,11 +190,13 @@ impl LongPoolingServiceContext {
 
     // TODO: Spawn task and send unsubscribe command through channel.
     #[inline]
-    pub(crate) async fn unsubscribe(&self, client_id: ClientId) {
+    pub(crate) async fn unsubscribe(self: &Arc<Self>, client_id: ClientId) {
         tokio::join!(
             self.remove_client_id_from_subscriptions(&client_id),
             self.remove_client_channel(&client_id),
         );
+
+        self.session_removed.call((self.clone(), client_id)).await;
     }
 
     #[inline]

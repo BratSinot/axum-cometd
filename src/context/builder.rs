@@ -1,5 +1,10 @@
-use crate::LongPoolingServiceContext;
+use crate::{
+    types::{Callback, ClientId},
+    LongPoolingServiceContext,
+};
 use ahash::AHashMap;
+use axum::http::HeaderMap;
+use std::future::Future;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
@@ -15,6 +20,8 @@ pub struct LongPoolingServiceContextBuilder {
     subscriptions_storage_capacity: usize,
     client_ids_storage_capacity: usize,
     consts: LongPoolingServiceContextConsts,
+    session_added: Callback<(Arc<LongPoolingServiceContext>, ClientId, HeaderMap)>,
+    session_removed: Callback<(Arc<LongPoolingServiceContext>, ClientId)>,
 }
 
 impl Default for LongPoolingServiceContextBuilder {
@@ -24,6 +31,8 @@ impl Default for LongPoolingServiceContextBuilder {
             subscriptions_storage_capacity: DEFAULT_STORAGE_CAPACITY,
             client_ids_storage_capacity: DEFAULT_STORAGE_CAPACITY,
             consts: Default::default(),
+            session_added: Default::default(),
+            session_removed: Default::default(),
         }
     }
 }
@@ -71,9 +80,13 @@ impl LongPoolingServiceContextBuilder {
             subscriptions_storage_capacity,
             client_ids_storage_capacity,
             consts,
+            session_added,
+            session_removed,
         } = self;
 
         Arc::new(LongPoolingServiceContext {
+            session_added,
+            session_removed,
             consts,
             channels_data: RwLock::new(AHashMap::with_capacity(subscriptions_storage_capacity)),
             client_id_senders: Arc::new(RwLock::new(AHashMap::with_capacity(
@@ -157,6 +170,56 @@ impl LongPoolingServiceContextBuilder {
     pub fn subscription_storage_capacity(self, capacity: usize) -> Self {
         Self {
             subscriptions_storage_capacity: capacity,
+            ..self
+        }
+    }
+
+    /// Set sync callback on new session creation.
+    #[inline(always)]
+    pub fn session_added<F>(self, callback: F) -> Self
+    where
+        F: Fn((Arc<LongPoolingServiceContext>, ClientId, HeaderMap)) + Send + Sync + 'static,
+    {
+        Self {
+            session_added: Callback::new_sync(callback),
+            ..self
+        }
+    }
+
+    /// Set async callback on new session creation.
+    #[inline(always)]
+    pub fn async_session_added<F, Fut>(self, callback: F) -> Self
+    where
+        F: Fn((Arc<LongPoolingServiceContext>, ClientId, HeaderMap)) -> Fut + Sync + Send + 'static,
+        Fut: Future<Output = ()> + Sync + Send + 'static,
+    {
+        Self {
+            session_added: Callback::new_async(callback),
+            ..self
+        }
+    }
+
+    /// Set sync callback on new session creation.
+    #[inline(always)]
+    pub fn session_removed<F>(self, callback: F) -> Self
+    where
+        F: Fn((Arc<LongPoolingServiceContext>, ClientId)) + Send + Sync + 'static,
+    {
+        Self {
+            session_removed: Callback::new_sync(callback),
+            ..self
+        }
+    }
+
+    /// Set async callback on new session creation.
+    #[inline(always)]
+    pub fn async_session_removed<F, Fut>(self, callback: F) -> Self
+    where
+        F: Fn((Arc<LongPoolingServiceContext>, ClientId)) -> Fut + Sync + Send + 'static,
+        Fut: Future<Output = ()> + Sync + Send + 'static,
+    {
+        Self {
+            session_removed: Callback::new_async(callback),
             ..self
         }
     }
