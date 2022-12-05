@@ -10,7 +10,13 @@ pub(crate) use http_handler_error::*;
 pub struct SendError;
 
 impl<Msg> From<TokioMpsc::error::SendError<Msg>> for SendError {
-    fn from(TokioMpsc::error::SendError(_): TokioMpsc::error::SendError<Msg>) -> Self {
+    fn from(_: TokioMpsc::error::SendError<Msg>) -> Self {
+        Self
+    }
+}
+
+impl<Msg> From<async_broadcast::SendError<Msg>> for SendError {
+    fn from(_: async_broadcast::SendError<Msg>) -> Self {
         Self
     }
 }

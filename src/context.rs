@@ -4,6 +4,7 @@ mod subscription_task;
 
 pub use {build_router::*, builder::*};
 
+use crate::messages::SubscriptionMessage;
 use crate::{
     types::{Callback, ChannelId, ClientId, ClientIdGen, ClientReceiver, ClientSender},
     SendError,
@@ -108,6 +109,35 @@ impl LongPoolingServiceContext {
         Ok(())
     }
 
+    /// Send message direct to client.
+    #[inline]
+    pub async fn send_to_client<Msg>(
+        &self,
+        channel: String,
+        client_id: &ClientId,
+        msg: Msg,
+    ) -> Result<(), SendError>
+    where
+        Msg: Debug + Serialize,
+    {
+        if let Some(tx) = self.client_id_senders.read().await.get(client_id) {
+            tx.send(SubscriptionMessage {
+                channel,
+                msg: json!(msg),
+            })
+            .await?;
+
+            Ok(())
+        } else {
+            tracing::trace!(
+                client_id = %client_id,
+                "No `{client_id}` client was found for message: `{msg:?}`."
+            );
+
+            Err(SendError)
+        }
+    }
+
     pub(crate) async fn register(self: &Arc<Self>, headers: HeaderMap) -> ClientId {
         static CLIENT_ID_GEN: ClientIdGen = ClientIdGen::new();
 
@@ -151,7 +181,7 @@ impl LongPoolingServiceContext {
         client_id: ClientId,
         channel: &str,
     ) -> Result<(), ClientId> {
-        if !self.client_id_senders.read().await.contains_key(&client_id) {
+        if !self.check_client_id(&client_id).await {
             tracing::error!(
                 client_id = %client_id,
                 "Non-existing client with clientId `{client_id}`."
@@ -189,8 +219,9 @@ impl LongPoolingServiceContext {
     }
 
     // TODO: Spawn task and send unsubscribe command through channel.
+    /// Remove client.
     #[inline]
-    pub(crate) async fn unsubscribe(self: &Arc<Self>, client_id: ClientId) {
+    pub async fn unsubscribe(self: &Arc<Self>, client_id: ClientId) {
         tokio::join!(
             self.remove_client_id_from_subscriptions(&client_id),
             self.remove_client_channel(&client_id),

@@ -76,7 +76,7 @@ pub(crate) struct Message {
 
 #[derive(Debug, Clone)]
 pub(crate) struct SubscriptionMessage {
-    pub(crate) subscription: ChannelId,
+    pub(crate) channel: ChannelId,
     pub(crate) msg: JsonValue,
 }
 

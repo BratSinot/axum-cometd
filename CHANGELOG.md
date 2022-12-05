@@ -10,6 +10,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Add
 
+- `LongPoolingServiceContext::send_to_client` to send message directly to client.
+- `LongPoolingServiceContext::unsubscribe` to remove client.
+
 ### Change
 
 - Return BAD_REQUEST if client send publish and connect at one request.
