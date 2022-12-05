@@ -36,7 +36,10 @@ pub(super) async fn meta_connect_handle(
         .await
         .ok_or_else(session_unknown)?;
 
-    let SubscriptionMessage { subscription, msg } = rx
+    let SubscriptionMessage {
+        channel: recv_channel,
+        msg,
+    } = rx
         .recv_timeout(Duration::from_millis(timeout))
         .await
         .map_err(|_| Message {
@@ -53,7 +56,7 @@ pub(super) async fn meta_connect_handle(
 
     Ok(vec![
         Message {
-            channel: Some(subscription),
+            channel: Some(recv_channel),
             data: Some(json!(msg)),
             ..Default::default()
         },

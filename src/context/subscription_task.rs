@@ -37,7 +37,7 @@ pub(crate) fn spawn(
 
                 if client_channel
                     .send(SubscriptionMessage {
-                        subscription: channel.clone(),
+                        channel: channel.clone(),
                         msg: msg.clone(),
                     })
                     .await
