@@ -112,7 +112,7 @@ async fn test_wrong_connect_type() {
 #[tokio::test]
 async fn test_reconnect() {
     let context = LongPoolingServiceContextBuilder::new().build();
-    let client_id = context.register().await;
+    let client_id = context.register(Default::default()).await;
     context.subscribe(client_id, "FOO_BAR").await.unwrap();
 
     let message = timeout(
@@ -157,7 +157,7 @@ async fn test_reconnect() {
 #[tokio::test]
 async fn test_channel_was_closed() {
     let context = LongPoolingServiceContextBuilder::new().build();
-    let client_id = context.register().await;
+    let client_id = context.register(Default::default()).await;
     context.subscribe(client_id, "FOO_BAR").await.unwrap();
 
     let ((), status_code) = tokio::join!(
