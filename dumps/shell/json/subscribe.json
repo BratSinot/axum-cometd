@@ -2,7 +2,7 @@
   {
     "id": "",
     "channel": "/meta/subscribe",
-    "subscription": "/topic0",
+    "subscription": ["/topic0", "/topic1"],
     "clientId": ""
   }
 ]

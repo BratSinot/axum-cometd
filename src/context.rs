@@ -4,8 +4,8 @@ mod subscription_task;
 
 pub use {build_router::*, builder::*};
 
-use crate::messages::SubscriptionMessage;
 use crate::{
+    messages::SubscriptionMessage,
     types::{Callback, ChannelId, ClientId, ClientIdGen, ClientReceiver, ClientSender},
     SendError,
 };
@@ -179,7 +179,7 @@ impl LongPoolingServiceContext {
     pub(crate) async fn subscribe(
         self: &Arc<Self>,
         client_id: ClientId,
-        channel: &str,
+        channels: &[String],
     ) -> Result<(), ClientId> {
         if !self.check_client_id(&client_id).await {
             tracing::error!(
@@ -189,30 +189,33 @@ impl LongPoolingServiceContext {
             return Err(client_id);
         }
 
-        match self.channels_data.write().await.entry(channel.to_string()) {
-            Entry::Occupied(o) => o.into_mut(),
-            Entry::Vacant(v) => {
-                let (tx, rx) = mpsc::channel(self.consts.subscription_channel_capacity);
+        let mut channels_data_write_guard = self.channels_data.write().await;
+        for channel in channels.iter() {
+            match channels_data_write_guard.entry(channel.to_string()) {
+                Entry::Occupied(o) => o.into_mut(),
+                Entry::Vacant(v) => {
+                    let (tx, rx) = mpsc::channel(self.consts.subscription_channel_capacity);
 
-                subscription_task::spawn(channel.to_string(), rx, self.clone());
-                tracing::info!(
-                    channel = channel,
-                    "New subscription ({channel}) channel was registered."
-                );
+                    subscription_task::spawn(channel.to_string(), rx, self.clone());
+                    tracing::info!(
+                        channel = channel,
+                        "New subscription ({channel}) channel was registered."
+                    );
 
-                v.insert(Channel {
-                    client_ids: Default::default(),
-                    tx,
-                })
+                    v.insert(Channel {
+                        client_ids: Default::default(),
+                        tx,
+                    })
+                }
             }
+            .client_ids
+            .insert(client_id);
         }
-        .client_ids
-        .insert(client_id);
 
         tracing::info!(
             client_id = %client_id,
-            channel = channel,
-            "Client with clientId `{client_id}` subscribe on `{channel}` channel."
+            channels = debug(channels),
+            "Client with clientId `{client_id}` subscribe on `{channels:?}` channels."
         );
 
         Ok(())

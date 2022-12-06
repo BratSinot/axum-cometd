@@ -1,3 +1,4 @@
+mod de;
 #[cfg(test)]
 mod test;
 
@@ -66,7 +67,8 @@ pub(crate) struct Message {
     #[serde(rename = "minimumVersion")]
     pub(crate) minimum_version: Option<String>,
     //pub(crate) reestablish: Option<bool>,
-    pub(crate) subscription: Option<String>,
+    #[serde(default, deserialize_with = "de::deserialize_subscription")]
+    pub(crate) subscription: Option<Vec<String>>,
     pub(crate) successful: Option<bool>,
     #[serde(rename = "supportedConnectionTypes")]
     pub(crate) supported_connection_types: Option<Vec<String>>,

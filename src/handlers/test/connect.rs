@@ -133,7 +133,10 @@ async fn test_wrong_connect_type() {
 async fn test_reconnect() {
     let context = LongPoolingServiceContextBuilder::new().build();
     let client_id = context.register(Default::default()).await;
-    context.subscribe(client_id, "FOO_BAR").await.unwrap();
+    context
+        .subscribe(client_id, &["FOO_BAR".to_string()])
+        .await
+        .unwrap();
 
     let message = timeout(
         Duration::from_millis(1000),
@@ -178,7 +181,10 @@ async fn test_reconnect() {
 async fn test_channel_was_closed() {
     let context = LongPoolingServiceContextBuilder::new().build();
     let client_id = context.register(Default::default()).await;
-    context.subscribe(client_id, "FOO_BAR").await.unwrap();
+    context
+        .subscribe(client_id, &["FOO_BAR".to_string()])
+        .await
+        .unwrap();
 
     let ((), status_code) = tokio::join!(
         async {

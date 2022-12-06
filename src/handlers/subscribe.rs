@@ -20,6 +20,11 @@ pub(crate) async fn subscribe(
         Err(Message::session_unknown(id, channel, None).into())
     } else {
         let subscription = subscription.ok_or_else(|| Message::subscription_missing(id.clone()))?;
+
+        if subscription.is_empty() {
+            return Err(Message::subscription_missing(id).into());
+        }
+
         let client_id =
             client_id.ok_or_else(|| Message::session_unknown(id.clone(), channel.clone(), None))?;
 
