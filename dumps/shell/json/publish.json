@@ -1,0 +1,18 @@
+[
+  {
+    "id": "",
+    "channel": "/topic0",
+    "data": {
+      "msg": "Hello 0"
+    },
+    "clientId": ""
+  },
+  {
+    "id": "",
+    "channel": "/topic1",
+    "data": {
+      "msg": "Hello 1"
+    },
+    "clientId": ""
+  }
+]

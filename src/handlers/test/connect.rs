@@ -43,7 +43,7 @@ async fn test_wrong_channel() {
     .into_status_code()
     .unwrap();
 
-    assert_eq!(message, StatusCode::INTERNAL_SERVER_ERROR);
+    assert_eq!(message, StatusCode::BAD_REQUEST);
 }
 
 #[tokio::test]

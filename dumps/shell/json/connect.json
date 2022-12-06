@@ -1,0 +1,11 @@
+[
+  {
+    "id": "",
+    "channel": "/meta/connect",
+    "connectionType": "long-polling",
+    "advice": {
+      "timeout": 5000
+    },
+    "clientId": ""
+  }
+]

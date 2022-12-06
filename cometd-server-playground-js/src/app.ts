@@ -38,7 +38,7 @@ topic0.addListener('message', function (session, channel, message, callback) {
     callback();
 });
 
-const topic1 = cometdServer.createServerChannel('/topic0');
+const topic1 = cometdServer.createServerChannel('/topic1');
 topic1.addListener('message', function (session, channel, message, callback) {
     /*console.log("Got message: ", {
         "id": session.id,
@@ -72,7 +72,7 @@ server.listen(port, function (): void {
 function loop() {
     setTimeout(function () {
         console.log("Publish");
-        topic1.publish(
+        topic0.publish(
             "Vasya",
             {
                 "type": "from_server",
