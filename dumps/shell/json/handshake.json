@@ -1,0 +1,15 @@
+[
+  {
+    "id": "",
+    "version": "1.0",
+    "minimumVersion": "1.0",
+    "channel": "/meta/handshake",
+    "supportedConnectionTypes": [
+      "long-polling"
+    ],
+    "advice": {
+      "timeout": 60000,
+      "interval": 0
+    }
+  }
+]

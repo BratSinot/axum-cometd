@@ -1,7 +1,0 @@
-# *) publish
-curl \
-    -vvv \
-    --silent \
-    -d '[{"id":"3","channel":"/topic0","data":{"msg":"Hello"},"clientId":"022a58c097ab1ec6d226d12f4c26959c9b345835"}]' \
-    -H 'Content-Type: application/json' \
-    '[::1]:1025/notifications/handshake'
