@@ -59,19 +59,14 @@ pub async fn subscribe(app: &Router, base_url: &str, body: JsonValue) -> JsonVal
     serde_json::from_slice::<JsonValue>(&body).unwrap()
 }
 
-pub async fn subscribe_to_subscription(
-    app: &Router,
-    base_url: &str,
-    client_id: &str,
-    subscription: &str,
-) {
+pub async fn subscribe_to_channel(app: &Router, base_url: &str, client_id: &str, channel: &str) {
     let successful = subscribe(
         app,
         base_url,
         json!([{
             "id": "3",
             "channel": "/meta/subscribe",
-            "subscription": subscription,
+            "subscription": channel,
             "clientId": client_id,
         }]),
     )
