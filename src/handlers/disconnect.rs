@@ -1,9 +1,9 @@
-use crate::{error::HandlerResult, messages::Message, LongPoolingServiceContext};
+use crate::{error::HandlerResult, messages::Message, LongPollingServiceContext};
 use axum::{extract::State, http::StatusCode, Json};
 use std::sync::Arc;
 
 pub(crate) async fn disconnect(
-    State(context): State<Arc<LongPoolingServiceContext>>,
+    State(context): State<Arc<LongPollingServiceContext>>,
     Json([message]): Json<[Message; 1]>,
 ) -> HandlerResult<StatusCode> {
     tracing::info!("Got disconnect request: `{message:?}`.");

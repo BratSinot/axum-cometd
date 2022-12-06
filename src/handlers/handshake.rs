@@ -1,13 +1,13 @@
 use crate::{
     error::HandlerResult,
     messages::{Advice, Message},
-    LongPoolingServiceContext,
+    LongPollingServiceContext,
 };
 use axum::{extract::State, http::HeaderMap, Json};
 use std::sync::Arc;
 
 pub(crate) async fn handshake(
-    State(context): State<Arc<LongPoolingServiceContext>>,
+    State(context): State<Arc<LongPollingServiceContext>>,
     headers: HeaderMap,
     Json([message]): Json<[Message; 1]>,
 ) -> HandlerResult<Json<[Message; 1]>> {

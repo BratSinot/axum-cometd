@@ -1,11 +1,11 @@
 use crate::types::ClientId;
-use crate::LongPoolingServiceContext;
+use crate::LongPollingServiceContext;
 use std::{sync::Arc, time::Duration};
 use tokio::{select, sync::Notify, time};
 use tokio_util::sync::CancellationToken;
 
 pub(super) fn spawn(
-    context: Arc<LongPoolingServiceContext>,
+    context: Arc<LongPollingServiceContext>,
     client_id: ClientId,
     timeout: Duration,
     stop_signal: CancellationToken,

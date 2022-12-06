@@ -3,7 +3,7 @@ mod client_timeout;
 use crate::{
     messages::SubscriptionMessage,
     types::{ClientId, ClientReceiver},
-    LongPoolingServiceContext,
+    LongPollingServiceContext,
 };
 use async_broadcast::{InactiveReceiver, SendError, Sender, TrySendError};
 use std::{fmt::Debug, sync::Arc, time::Duration};
@@ -22,7 +22,7 @@ pub(crate) struct ClientSender {
 impl ClientSender {
     #[inline]
     pub(crate) fn create(
-        context: Arc<LongPoolingServiceContext>,
+        context: Arc<LongPollingServiceContext>,
         client_id: ClientId,
         timeout: Duration,
         tx: Sender<SubscriptionMessage>,

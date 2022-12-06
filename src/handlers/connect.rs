@@ -1,14 +1,14 @@
 mod publish;
 mod wait_message;
 
-use crate::{error::HandlerResult, messages::Message, LongPoolingServiceContext};
+use crate::{error::HandlerResult, messages::Message, LongPollingServiceContext};
 use axum::{extract::State, Json};
 use publish::*;
 use std::sync::Arc;
 use wait_message::*;
 
 pub(crate) async fn connect(
-    State(context): State<Arc<LongPoolingServiceContext>>,
+    State(context): State<Arc<LongPollingServiceContext>>,
     Json(messages): Json<Vec<Message>>,
 ) -> HandlerResult<Json<Vec<Message>>> {
     tracing::info!("Got connect request: `{messages:?}`.");

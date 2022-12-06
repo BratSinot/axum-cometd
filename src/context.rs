@@ -4,8 +4,8 @@ mod subscription_task;
 
 pub use {build_router::*, builder::*};
 
-use crate::messages::SubscriptionMessage;
 use crate::{
+    messages::SubscriptionMessage,
     types::{Callback, ChannelId, ClientId, ClientIdGen, ClientReceiver, ClientSender},
     SendError,
 };
@@ -18,11 +18,11 @@ use tokio::sync::{mpsc, RwLock};
 
 /// Context for sending messages to channels.
 #[derive(Debug)]
-pub struct LongPoolingServiceContext {
-    session_added: Callback<(Arc<LongPoolingServiceContext>, ClientId, HeaderMap)>,
-    session_removed: Callback<(Arc<LongPoolingServiceContext>, ClientId)>,
+pub struct LongPollingServiceContext {
+    session_added: Callback<(Arc<LongPollingServiceContext>, ClientId, HeaderMap)>,
+    session_removed: Callback<(Arc<LongPollingServiceContext>, ClientId)>,
 
-    consts: LongPoolingServiceContextConsts,
+    consts: LongPollingServiceContextConsts,
     channels_data: RwLock<AHashMap<ChannelId, Channel>>,
     client_id_senders: Arc<RwLock<AHashMap<ClientId, ClientSender>>>,
 }
@@ -50,7 +50,7 @@ impl Channel {
     }
 }
 
-impl LongPoolingServiceContext {
+impl LongPollingServiceContext {
     /// Send message to channel.
     ///
     /// # Example
@@ -63,7 +63,7 @@ impl LongPoolingServiceContext {
     ///     }
     ///
     /// # async {
-    ///     let context = axum_cometd::LongPoolingServiceContextBuilder::new()
+    ///     let context = axum_cometd::LongPollingServiceContextBuilder::new()
     ///         .timeout_ms(1000)
     ///         .max_interval_ms(2000)
     ///         .client_channel_capacity(10_000)
@@ -179,7 +179,7 @@ impl LongPoolingServiceContext {
     pub(crate) async fn subscribe(
         self: &Arc<Self>,
         client_id: ClientId,
-        channel: &str,
+        channels: &[String],
     ) -> Result<(), ClientId> {
         if !self.check_client_id(&client_id).await {
             tracing::error!(
@@ -189,30 +189,33 @@ impl LongPoolingServiceContext {
             return Err(client_id);
         }
 
-        match self.channels_data.write().await.entry(channel.to_string()) {
-            Entry::Occupied(o) => o.into_mut(),
-            Entry::Vacant(v) => {
-                let (tx, rx) = mpsc::channel(self.consts.subscription_channel_capacity);
+        let mut channels_data_write_guard = self.channels_data.write().await;
+        for channel in channels.iter() {
+            match channels_data_write_guard.entry(channel.to_string()) {
+                Entry::Occupied(o) => o.into_mut(),
+                Entry::Vacant(v) => {
+                    let (tx, rx) = mpsc::channel(self.consts.subscription_channel_capacity);
 
-                subscription_task::spawn(channel.to_string(), rx, self.clone());
-                tracing::info!(
-                    channel = channel,
-                    "New subscription ({channel}) channel was registered."
-                );
+                    subscription_task::spawn(channel.to_string(), rx, self.clone());
+                    tracing::info!(
+                        channel = channel,
+                        "New subscription ({channel}) channel was registered."
+                    );
 
-                v.insert(Channel {
-                    client_ids: Default::default(),
-                    tx,
-                })
+                    v.insert(Channel {
+                        client_ids: Default::default(),
+                        tx,
+                    })
+                }
             }
+            .client_ids
+            .insert(client_id);
         }
-        .client_ids
-        .insert(client_id);
 
         tracing::info!(
             client_id = %client_id,
-            channel = channel,
-            "Client with clientId `{client_id}` subscribe on `{channel}` channel."
+            channels = debug(channels),
+            "Client with clientId `{client_id}` subscribe on `{channels:?}` channels."
         );
 
         Ok(())
@@ -283,7 +286,7 @@ impl LongPoolingServiceContext {
     }
 
     #[inline(always)]
-    pub(crate) fn consts(&self) -> &LongPoolingServiceContextConsts {
+    pub(crate) fn consts(&self) -> &LongPollingServiceContextConsts {
         &self.consts
     }
 

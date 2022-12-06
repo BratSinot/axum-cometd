@@ -1,9 +1,9 @@
-use crate::{error::HandlerResult, messages::Message, LongPoolingServiceContext};
+use crate::{error::HandlerResult, messages::Message, LongPollingServiceContext};
 use axum::{extract::State, Json};
 use std::sync::Arc;
 
 pub(crate) async fn subscribe(
-    State(context): State<Arc<LongPoolingServiceContext>>,
+    State(context): State<Arc<LongPollingServiceContext>>,
     Json([message]): Json<[Message; 1]>,
 ) -> HandlerResult<Json<[Message; 1]>> {
     tracing::info!("Got subscribe request: `{message:?}`.");
@@ -20,6 +20,11 @@ pub(crate) async fn subscribe(
         Err(Message::session_unknown(id, channel, None).into())
     } else {
         let subscription = subscription.ok_or_else(|| Message::subscription_missing(id.clone()))?;
+
+        if subscription.is_empty() {
+            return Err(Message::subscription_missing(id).into());
+        }
+
         let client_id =
             client_id.ok_or_else(|| Message::session_unknown(id.clone(), channel.clone(), None))?;
 

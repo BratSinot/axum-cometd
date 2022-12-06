@@ -1,5 +1,5 @@
 use axum::{Router, Server};
-use axum_cometd::{LongPoolingServiceContext, LongPoolingServiceContextBuilder, RouterBuilder};
+use axum_cometd::{LongPollingServiceContext, LongPollingServiceContextBuilder, RouterBuilder};
 use rand::{distributions::Uniform, rngs::StdRng, Rng, SeedableRng};
 use std::{
     fmt::Debug,
@@ -29,7 +29,7 @@ async fn main() {
         .with_env_filter("debug,axum_cometd=debug")
         .init();
 
-    let context = LongPoolingServiceContextBuilder::new()
+    let context = LongPollingServiceContextBuilder::new()
         .timeout_ms(5000)
         .max_interval_ms(2000)
         .client_channel_capacity(500)
@@ -58,7 +58,7 @@ async fn main() {
     handler.await.unwrap().unwrap();
 }
 
-fn spawn_topic(context: Arc<LongPoolingServiceContext>, channel: &'static str) {
+fn spawn_topic(context: Arc<LongPollingServiceContext>, channel: &'static str) {
     tokio::task::spawn(async move {
         let mut rng: StdRng = SeedableRng::from_entropy();
         let distribution = Uniform::new(500, 1000);
