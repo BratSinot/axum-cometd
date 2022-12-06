@@ -1,6 +1,6 @@
 use crate::{
     types::{Callback, ClientId},
-    LongPoolingServiceContext,
+    LongPollingServiceContext,
 };
 use ahash::AHashMap;
 use axum::http::HeaderMap;
@@ -16,15 +16,15 @@ const DEFAULT_STORAGE_CAPACITY: usize = 10_000;
 
 /// A builder to construct `LongPoolingServiceContext`.
 #[derive(Debug)]
-pub struct LongPoolingServiceContextBuilder {
+pub struct LongPollingServiceContextBuilder {
     subscriptions_storage_capacity: usize,
     client_ids_storage_capacity: usize,
-    consts: LongPoolingServiceContextConsts,
-    session_added: Callback<(Arc<LongPoolingServiceContext>, ClientId, HeaderMap)>,
-    session_removed: Callback<(Arc<LongPoolingServiceContext>, ClientId)>,
+    consts: LongPollingServiceContextConsts,
+    session_added: Callback<(Arc<LongPollingServiceContext>, ClientId, HeaderMap)>,
+    session_removed: Callback<(Arc<LongPollingServiceContext>, ClientId)>,
 }
 
-impl Default for LongPoolingServiceContextBuilder {
+impl Default for LongPollingServiceContextBuilder {
     #[inline(always)]
     fn default() -> Self {
         Self {
@@ -38,7 +38,7 @@ impl Default for LongPoolingServiceContextBuilder {
 }
 
 #[derive(Debug)]
-pub(crate) struct LongPoolingServiceContextConsts {
+pub(crate) struct LongPollingServiceContextConsts {
     pub(crate) timeout_ms: u64,
     pub(crate) interval_ms: u64,
     pub(crate) max_interval_ms: u64,
@@ -46,7 +46,7 @@ pub(crate) struct LongPoolingServiceContextConsts {
     pub(crate) subscription_channel_capacity: usize,
 }
 
-impl Default for LongPoolingServiceContextConsts {
+impl Default for LongPollingServiceContextConsts {
     #[inline(always)]
     fn default() -> Self {
         Self {
@@ -59,7 +59,7 @@ impl Default for LongPoolingServiceContextConsts {
     }
 }
 
-impl LongPoolingServiceContextBuilder {
+impl LongPollingServiceContextBuilder {
     /// Construct a new `LongPoolingServiceContextBuilder`.
     #[inline(always)]
     pub fn new() -> Self {
@@ -70,12 +70,12 @@ impl LongPoolingServiceContextBuilder {
     ///
     /// # Example
     /// ```rust
-    /// use axum_cometd::LongPoolingServiceContextBuilder;
+    /// use axum_cometd::LongPollingServiceContextBuilder;
     ///
-    /// let context = LongPoolingServiceContextBuilder::new().build();
+    /// let context = LongPollingServiceContextBuilder::new().build();
     /// ```
     #[inline(always)]
-    pub fn build(self) -> Arc<LongPoolingServiceContext> {
+    pub fn build(self) -> Arc<LongPollingServiceContext> {
         let Self {
             subscriptions_storage_capacity,
             client_ids_storage_capacity,
@@ -84,7 +84,7 @@ impl LongPoolingServiceContextBuilder {
             session_removed,
         } = self;
 
-        Arc::new(LongPoolingServiceContext {
+        Arc::new(LongPollingServiceContext {
             session_added,
             session_removed,
             consts,
@@ -99,7 +99,7 @@ impl LongPoolingServiceContextBuilder {
     #[inline(always)]
     pub fn timeout_ms(self, timeout_ms: u64) -> Self {
         Self {
-            consts: LongPoolingServiceContextConsts {
+            consts: LongPollingServiceContextConsts {
                 timeout_ms,
                 ..self.consts
             },
@@ -124,7 +124,7 @@ impl LongPoolingServiceContextBuilder {
     #[inline(always)]
     pub fn max_interval_ms(self, max_interval_ms: u64) -> Self {
         Self {
-            consts: LongPoolingServiceContextConsts {
+            consts: LongPollingServiceContextConsts {
                 max_interval_ms,
                 ..self.consts
             },
@@ -136,7 +136,7 @@ impl LongPoolingServiceContextBuilder {
     #[inline(always)]
     pub fn client_channel_capacity(self, capacity: usize) -> Self {
         Self {
-            consts: LongPoolingServiceContextConsts {
+            consts: LongPollingServiceContextConsts {
                 client_channel_capacity: capacity,
                 ..self.consts
             },
@@ -157,7 +157,7 @@ impl LongPoolingServiceContextBuilder {
     #[inline(always)]
     pub fn subscription_channel_capacity(self, capacity: usize) -> Self {
         Self {
-            consts: LongPoolingServiceContextConsts {
+            consts: LongPollingServiceContextConsts {
                 subscription_channel_capacity: capacity,
                 ..self.consts
             },
@@ -178,7 +178,7 @@ impl LongPoolingServiceContextBuilder {
     #[inline(always)]
     pub fn session_added<F>(self, callback: F) -> Self
     where
-        F: Fn((Arc<LongPoolingServiceContext>, ClientId, HeaderMap)) + Send + Sync + 'static,
+        F: Fn((Arc<LongPollingServiceContext>, ClientId, HeaderMap)) + Send + Sync + 'static,
     {
         Self {
             session_added: Callback::new_sync(callback),
@@ -190,7 +190,7 @@ impl LongPoolingServiceContextBuilder {
     #[inline(always)]
     pub fn async_session_added<F, Fut>(self, callback: F) -> Self
     where
-        F: Fn((Arc<LongPoolingServiceContext>, ClientId, HeaderMap)) -> Fut + Sync + Send + 'static,
+        F: Fn((Arc<LongPollingServiceContext>, ClientId, HeaderMap)) -> Fut + Sync + Send + 'static,
         Fut: Future<Output = ()> + Sync + Send + 'static,
     {
         Self {
@@ -203,7 +203,7 @@ impl LongPoolingServiceContextBuilder {
     #[inline(always)]
     pub fn session_removed<F>(self, callback: F) -> Self
     where
-        F: Fn((Arc<LongPoolingServiceContext>, ClientId)) + Send + Sync + 'static,
+        F: Fn((Arc<LongPollingServiceContext>, ClientId)) + Send + Sync + 'static,
     {
         Self {
             session_removed: Callback::new_sync(callback),
@@ -215,7 +215,7 @@ impl LongPoolingServiceContextBuilder {
     #[inline(always)]
     pub fn async_session_removed<F, Fut>(self, callback: F) -> Self
     where
-        F: Fn((Arc<LongPoolingServiceContext>, ClientId)) -> Fut + Sync + Send + 'static,
+        F: Fn((Arc<LongPollingServiceContext>, ClientId)) -> Fut + Sync + Send + 'static,
         Fut: Future<Output = ()> + Sync + Send + 'static,
     {
         Self {

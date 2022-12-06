@@ -1,5 +1,5 @@
 use axum::Router;
-use axum_cometd::{LongPoolingServiceContextBuilder, RouterBuilder};
+use axum_cometd::{LongPollingServiceContextBuilder, RouterBuilder};
 use serde_json::{json, Value as JsonValue};
 use std::sync::Arc;
 use std::time::Duration;
@@ -21,7 +21,7 @@ async fn receive_message_and_extract_data(app: &Router, client_id: &str) -> Json
 
 #[tokio::test]
 async fn test_different_paths() {
-    let builder = LongPoolingServiceContextBuilder::new()
+    let builder = LongPollingServiceContextBuilder::new()
         .timeout_ms(1000)
         .max_interval_ms(60_000)
         .client_channel_capacity(10)
@@ -72,7 +72,7 @@ async fn test_callbacks() {
     let client_id_check = Arc::new(Mutex::new(String::new()));
     let removed_client_id = Arc::new(Mutex::new(String::new()));
 
-    let context = LongPoolingServiceContextBuilder::new()
+    let context = LongPollingServiceContextBuilder::new()
         .timeout_ms(5000)
         .max_interval_ms(60_000)
         .client_channel_capacity(10)

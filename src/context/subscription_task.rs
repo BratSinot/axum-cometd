@@ -1,5 +1,5 @@
 use crate::{
-    context::{Channel, LongPoolingServiceContext},
+    context::{Channel, LongPollingServiceContext},
     messages::SubscriptionMessage,
 };
 use serde_json::Value as JsonValue;
@@ -9,7 +9,7 @@ use tokio::sync::mpsc;
 pub(crate) fn spawn(
     channel: String,
     mut rx: mpsc::Receiver<JsonValue>,
-    inner: Arc<LongPoolingServiceContext>,
+    inner: Arc<LongPollingServiceContext>,
 ) {
     tokio::task::spawn(async move {
         while let Some(msg) = rx.recv().await {

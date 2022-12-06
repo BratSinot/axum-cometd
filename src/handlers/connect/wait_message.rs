@@ -1,7 +1,7 @@
 use crate::{
     error::HandlerResult,
     messages::{Advice, Message, SubscriptionMessage},
-    LongPoolingServiceContext,
+    LongPollingServiceContext,
 };
 use axum::http::StatusCode;
 use serde_json::json;
@@ -9,7 +9,7 @@ use std::time::Duration;
 
 #[inline]
 pub(super) async fn wait_client_message_handle(
-    context: &LongPoolingServiceContext,
+    context: &LongPollingServiceContext,
     message: Message,
 ) -> HandlerResult<Vec<Message>> {
     let Message {

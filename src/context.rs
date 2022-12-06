@@ -18,11 +18,11 @@ use tokio::sync::{mpsc, RwLock};
 
 /// Context for sending messages to channels.
 #[derive(Debug)]
-pub struct LongPoolingServiceContext {
-    session_added: Callback<(Arc<LongPoolingServiceContext>, ClientId, HeaderMap)>,
-    session_removed: Callback<(Arc<LongPoolingServiceContext>, ClientId)>,
+pub struct LongPollingServiceContext {
+    session_added: Callback<(Arc<LongPollingServiceContext>, ClientId, HeaderMap)>,
+    session_removed: Callback<(Arc<LongPollingServiceContext>, ClientId)>,
 
-    consts: LongPoolingServiceContextConsts,
+    consts: LongPollingServiceContextConsts,
     channels_data: RwLock<AHashMap<ChannelId, Channel>>,
     client_id_senders: Arc<RwLock<AHashMap<ClientId, ClientSender>>>,
 }
@@ -50,7 +50,7 @@ impl Channel {
     }
 }
 
-impl LongPoolingServiceContext {
+impl LongPollingServiceContext {
     /// Send message to channel.
     ///
     /// # Example
@@ -63,7 +63,7 @@ impl LongPoolingServiceContext {
     ///     }
     ///
     /// # async {
-    ///     let context = axum_cometd::LongPoolingServiceContextBuilder::new()
+    ///     let context = axum_cometd::LongPollingServiceContextBuilder::new()
     ///         .timeout_ms(1000)
     ///         .max_interval_ms(2000)
     ///         .client_channel_capacity(10_000)
@@ -286,7 +286,7 @@ impl LongPoolingServiceContext {
     }
 
     #[inline(always)]
-    pub(crate) fn consts(&self) -> &LongPoolingServiceContextConsts {
+    pub(crate) fn consts(&self) -> &LongPollingServiceContextConsts {
         &self.consts
     }
 

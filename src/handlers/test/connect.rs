@@ -1,7 +1,7 @@
 use crate::{
     handlers,
     messages::{Advice, Message, Reconnect},
-    HandlerError, LongPoolingServiceContextBuilder,
+    HandlerError, LongPollingServiceContextBuilder,
 };
 use axum::{extract::State, http::StatusCode, Json};
 use serde_json::json;
@@ -30,7 +30,7 @@ impl HandlerError {
 
 #[tokio::test]
 async fn test_wrong_channel() {
-    let context = LongPoolingServiceContextBuilder::new().build();
+    let context = LongPollingServiceContextBuilder::new().build();
     let message = handlers::connect(
         State(context.clone()),
         Json(vec![Message {
@@ -48,7 +48,7 @@ async fn test_wrong_channel() {
 
 #[tokio::test]
 async fn test_empty_client_id() {
-    let context = LongPoolingServiceContextBuilder::new().build();
+    let context = LongPollingServiceContextBuilder::new().build();
     let message = handlers::connect(
         State(context.clone()),
         Json(vec![Message {
@@ -76,7 +76,7 @@ async fn test_client_doesnt_exist() {
     let client_id =
         serde_json::from_value(json!("5804e4865f649fb91645030760db1f358c837af9")).unwrap();
 
-    let context = LongPoolingServiceContextBuilder::new().build();
+    let context = LongPollingServiceContextBuilder::new().build();
     let message = handlers::connect(
         State(context.clone()),
         Json(vec![Message {
@@ -105,7 +105,7 @@ async fn test_wrong_connect_type() {
     let client_id =
         Some(serde_json::from_value(json!("5804e4865f649fb91645030760db1f358c837af9")).unwrap());
 
-    let context = LongPoolingServiceContextBuilder::new().build();
+    let context = LongPollingServiceContextBuilder::new().build();
     let message = handlers::connect(
         State(context.clone()),
         Json(vec![Message {
@@ -131,7 +131,7 @@ async fn test_wrong_connect_type() {
 
 #[tokio::test]
 async fn test_reconnect() {
-    let context = LongPoolingServiceContextBuilder::new().build();
+    let context = LongPollingServiceContextBuilder::new().build();
     let client_id = context.register(Default::default()).await;
     context
         .subscribe(client_id, &["FOO_BAR".to_string()])
@@ -179,7 +179,7 @@ async fn test_reconnect() {
 
 #[tokio::test]
 async fn test_channel_was_closed() {
-    let context = LongPoolingServiceContextBuilder::new().build();
+    let context = LongPollingServiceContextBuilder::new().build();
     let client_id = context.register(Default::default()).await;
     context
         .subscribe(client_id, &["FOO_BAR".to_string()])

@@ -1,13 +1,13 @@
 use crate::{
     context::Channel,
     messages::{Advice, Message},
-    LongPoolingServiceContext,
+    LongPollingServiceContext,
 };
 use axum::http::StatusCode;
 
 #[inline]
 pub(super) async fn publish_handle(
-    context: &LongPoolingServiceContext,
+    context: &LongPollingServiceContext,
     mut messages: Vec<Message>,
 ) -> Result<Vec<Message>, StatusCode> {
     if messages.iter().any(|message| {
