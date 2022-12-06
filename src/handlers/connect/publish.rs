@@ -1,5 +1,8 @@
-use crate::messages::Advice;
-use crate::{context::Channel, messages::Message, LongPoolingServiceContext};
+use crate::{
+    context::Channel,
+    messages::{Advice, Message},
+    LongPoolingServiceContext,
+};
 use axum::http::StatusCode;
 
 #[inline]
@@ -38,7 +41,7 @@ pub(super) async fn publish_handle(
                             if tx.send(data.unwrap_or_default()).await.is_err() {
                                 tracing::error!(
                                     client_id = %client_id,
-                                    subscription = channel,
+                                    channel = channel,
                                     "Channel was closed!"
                                 );
                             }
