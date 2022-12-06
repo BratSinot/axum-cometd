@@ -13,30 +13,6 @@ pub(crate) enum HandlerError {
     Message(Message),
 }
 
-impl HandlerError {
-    #[cfg(feature = "test")]
-    #[allow(dead_code)]
-    #[inline(always)]
-    pub fn into_status_code(self) -> Option<StatusCode> {
-        if let Self::StatusCode(code) = self {
-            Some(code)
-        } else {
-            None
-        }
-    }
-
-    #[cfg(feature = "test")]
-    #[allow(dead_code)]
-    #[inline(always)]
-    pub fn into_message(self) -> Option<Message> {
-        if let Self::Message(message) = self {
-            Some(message)
-        } else {
-            None
-        }
-    }
-}
-
 impl IntoResponse for HandlerError {
     #[inline(always)]
     fn into_response(self) -> Response {

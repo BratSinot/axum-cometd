@@ -1,12 +1,32 @@
 use crate::{
     handlers,
     messages::{Advice, Message, Reconnect},
-    LongPoolingServiceContextBuilder,
+    HandlerError, LongPoolingServiceContextBuilder,
 };
 use axum::{extract::State, http::StatusCode, Json};
 use serde_json::json;
 use std::time::Duration;
 use tokio::time::timeout;
+
+impl HandlerError {
+    #[inline(always)]
+    fn into_status_code(self) -> Option<StatusCode> {
+        if let Self::StatusCode(code) = self {
+            Some(code)
+        } else {
+            None
+        }
+    }
+
+    #[inline(always)]
+    fn into_message(self) -> Option<Message> {
+        if let Self::Message(message) = self {
+            Some(message)
+        } else {
+            None
+        }
+    }
+}
 
 #[tokio::test]
 async fn test_wrong_channel() {
