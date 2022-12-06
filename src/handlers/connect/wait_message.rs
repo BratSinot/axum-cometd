@@ -8,7 +8,7 @@ use serde_json::json;
 use std::time::Duration;
 
 #[inline]
-pub(super) async fn meta_connect_handle(
+pub(super) async fn wait_client_message_handle(
     context: &LongPoolingServiceContext,
     message: Message,
 ) -> HandlerResult<Vec<Message>> {
@@ -21,10 +21,6 @@ pub(super) async fn meta_connect_handle(
     } = message;
     let session_unknown =
         || Message::session_unknown(id.clone(), channel.clone(), Some(Advice::handshake()));
-
-    if channel.as_deref() != Some("/meta/connect") {
-        return Err(StatusCode::INTERNAL_SERVER_ERROR.into());
-    }
 
     let client_id = client_id.ok_or_else(session_unknown)?;
     let timeout = advice
