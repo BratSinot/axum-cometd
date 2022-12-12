@@ -22,5 +22,6 @@ mod error;
 mod handlers;
 mod messages;
 mod types;
+mod utils;
 
 pub use {context::*, error::*, types::*};

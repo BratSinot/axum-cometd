@@ -7,6 +7,7 @@ pub use {build_router::*, builder::*};
 use crate::{
     messages::SubscriptionMessage,
     types::{Callback, ChannelId, ClientId, ClientIdGen, ClientReceiver, ClientSender},
+    utils::ChannelNameValidator,
     SendError,
 };
 use ahash::{AHashMap, AHashSet};
@@ -22,6 +23,7 @@ pub struct LongPollingServiceContext {
     session_added: Callback<(Arc<LongPollingServiceContext>, ClientId, HeaderMap)>,
     session_removed: Callback<(Arc<LongPollingServiceContext>, ClientId)>,
 
+    channel_name_validator: ChannelNameValidator,
     consts: LongPollingServiceContextConsts,
     channels_data: RwLock<AHashMap<ChannelId, Channel>>,
     client_id_senders: Arc<RwLock<AHashMap<ClientId, ClientSender>>>,
@@ -283,6 +285,11 @@ impl LongPollingServiceContext {
     #[inline]
     pub(crate) async fn check_client_id(&self, client_id: &ClientId) -> bool {
         self.client_id_senders.read().await.contains_key(client_id)
+    }
+
+    #[inline(always)]
+    pub(crate) fn channel_name_validator(&self) -> &ChannelNameValidator {
+        &self.channel_name_validator
     }
 
     #[inline(always)]

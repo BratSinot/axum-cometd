@@ -28,6 +28,9 @@ pub(crate) async fn subscribe(
         let client_id =
             client_id.ok_or_else(|| Message::session_unknown(id.clone(), channel.clone(), None))?;
 
+        let validate = |name: &String| context.channel_name_validator().validate(name);
+        subscription.iter().try_for_each(validate)?;
+
         context
             .subscribe(client_id, &subscription)
             .await

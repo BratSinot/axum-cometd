@@ -38,12 +38,12 @@ async fn test_different_paths() {
     let app = Router::new().nest("/root", builder.build(&context));
 
     let client_id = get_client_id(&app, "/root/hand", 60_000).await;
-    subscribe_to_channel(&app, "/root/sub", &client_id, "SUPER_IMPORTANT_CHANNEL").await;
+    subscribe_to_channel(&app, "/root/sub", &client_id, "/SUPER_IMPORTANT_CHANNEL").await;
 
     let (data, ()) = try_join!(
         async { Ok(receive_message_and_extract_data(&app, &client_id).await) },
         context.send(
-            "SUPER_IMPORTANT_CHANNEL",
+            "/SUPER_IMPORTANT_CHANNEL",
             json!({"msg": "integration_test"})
         )
     )
