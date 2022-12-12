@@ -51,10 +51,13 @@ topic1.addListener('message', function (session, channel, message, callback) {
 });
 
 cometdServer.addListener('sessionAdded', (cometConnection, msg) => {
-    console.log("sessionAdded, (cometConnection: \"" + json(cometConnection), "\", msg: \"", msg, "\"");
+    console.log(`sessionAdded, (cometConnection: "${json(cometConnection)}", msg: "${msg}")`);
 });
 cometdServer.addListener('sessionRemoved', (cometConnection, timeout) => {
-    console.log("sessionRemoved, (cometConnection: \"" + json(cometConnection), "\", timeout: \"", timeout, "\"");
+    console.log(`sessionRemoved, (cometConnection: "${json(cometConnection)}", timeout: ${timeout}`);
+});
+cometdServer.addListener('channelAdded', (channel) => {
+    console.log(`channelAdded, (channel: "${json(channel)}")`);
 });
 
 app.use('/notifications', cometdServer.handle);
