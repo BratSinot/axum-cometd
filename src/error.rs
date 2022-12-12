@@ -14,6 +14,8 @@ pub enum SendError {
     Closed,
     #[error("client ({0}) wasn't found")]
     ClientWasntFound(ClientId),
+    #[error("invalid channel name")]
+    InvalidChannel,
 }
 
 impl<Msg> From<TokioSendError<Msg>> for SendError {

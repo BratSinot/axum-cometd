@@ -93,6 +93,9 @@ impl LongPollingServiceContext {
     where
         Msg: Debug + Serialize,
     {
+        self.channel_name_validator
+            .validate_error(channel, SendError::InvalidChannel)?;
+
         let tx = self
             .channels_data
             .read()
@@ -115,16 +118,19 @@ impl LongPollingServiceContext {
     #[inline]
     pub async fn send_to_client<Msg>(
         &self,
-        channel: String,
+        channel: &str,
         client_id: &ClientId,
         msg: Msg,
     ) -> Result<(), SendError>
     where
         Msg: Debug + Serialize,
     {
+        self.channel_name_validator
+            .validate_error(channel, SendError::InvalidChannel)?;
+
         if let Some(tx) = self.client_id_senders.read().await.get(client_id) {
             tx.send(SubscriptionMessage {
-                channel,
+                channel: channel.to_string(),
                 msg: json!(msg),
             })
             .await?;
