@@ -94,7 +94,7 @@ impl LongPollingServiceContext {
         Msg: Debug + Serialize,
     {
         self.channel_name_validator
-            .validate_error(channel, SendError::InvalidChannel)?;
+            .validate_send_channel_name(channel, SendError::InvalidChannel)?;
 
         let tx = self
             .channels_data
@@ -126,7 +126,7 @@ impl LongPollingServiceContext {
         Msg: Debug + Serialize,
     {
         self.channel_name_validator
-            .validate_error(channel, SendError::InvalidChannel)?;
+            .validate_send_channel_name(channel, SendError::InvalidChannel)?;
 
         if let Some(tx) = self.client_id_senders.read().await.get(client_id) {
             tx.send(SubscriptionMessage {
