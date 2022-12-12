@@ -136,7 +136,7 @@ impl LongPollingServiceContext {
                 "No `{client_id}` client was found for message: `{msg:?}`."
             );
 
-            Err(SendError)
+            Err(SendError::ClientWasntFound(*client_id))
         }
     }
 

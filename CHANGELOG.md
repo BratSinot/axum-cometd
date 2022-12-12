@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
-## [0.5.1] - 2022-12-12
+## [0.6.0]
 
 ### Fixed
 
@@ -13,6 +13,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Channel name validation.
 
 ### Change
+
+- `SendError` now enum.
 
 ## [0.5.0] - 2022-12-06
 
