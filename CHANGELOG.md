@@ -4,15 +4,18 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
-## [0.5.1] - 2022-12-12
+## [0.6.0]
 
 ### Fixed
 
 ### Add
 
 - Channel name validation.
+- Validate channel on `send` and `send_to_client`.
 
 ### Change
+
+- `SendError` now enum.
 
 ## [0.5.0] - 2022-12-06
 
