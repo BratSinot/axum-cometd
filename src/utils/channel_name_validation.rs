@@ -30,10 +30,10 @@ mod tests {
     use super::*;
 
     #[test]
+    #[rustfmt::skip]
     fn test_channel_name_validator() {
         let validator = ChannelNameValidator::default();
 
-        #[rustfmt::skip]
         for (channel, result) in [
             (r#"/first1"#, Ok(())),
             (r#"/first1*"#, Err(StatusCode::BAD_REQUEST)),
