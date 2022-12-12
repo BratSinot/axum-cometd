@@ -15,8 +15,8 @@ pub(crate) struct Advice {
     pub(crate) interval: Option<u64>,
     #[serde(rename = "maxInterval")]
     pub(crate) max_interval: Option<u64>,
-    #[serde(rename = "multiple-clients")]
-    pub(crate) multiple_clients: Option<bool>,
+    //#[serde(rename = "multiple-clients")]
+    //pub(crate) multiple_clients: Option<bool>,
     pub(crate) reconnect: Option<Reconnect>,
     pub(crate) timeout: Option<u64>,
     pub(crate) hosts: Option<Vec<String>>,

@@ -5,27 +5,19 @@ impl PartialEq for Advice {
         let Self {
             interval,
             max_interval,
-            multiple_clients,
             reconnect,
             timeout,
             hosts,
         } = self;
 
-        (
-            interval,
-            max_interval,
-            multiple_clients,
-            reconnect,
-            timeout,
-            hosts,
-        ) == (
-            &other.interval,
-            &other.max_interval,
-            &other.multiple_clients,
-            &other.reconnect,
-            &other.timeout,
-            &other.hosts,
-        )
+        (interval, max_interval, reconnect, timeout, hosts)
+            == (
+                &other.interval,
+                &other.max_interval,
+                &other.reconnect,
+                &other.timeout,
+                &other.hosts,
+            )
     }
 }
 impl Eq for Advice {}
