@@ -2,13 +2,12 @@ use crate::{
     context::{Channel, LongPollingServiceContext},
     messages::SubscriptionMessage,
 };
-use serde_json::Value as JsonValue;
 use std::sync::Arc;
 use tokio::sync::mpsc;
 
 pub(crate) fn spawn(
     channel: String,
-    mut rx: mpsc::Receiver<JsonValue>,
+    mut rx: mpsc::Receiver<SubscriptionMessage>,
     inner: Arc<LongPollingServiceContext>,
 ) {
     tokio::task::spawn(async move {
@@ -35,14 +34,7 @@ pub(crate) fn spawn(
                     "Message `{msg:?}` from channel `{channel}` was sent to client `{client_id}`."
                 );
 
-                if client_channel
-                    .send(SubscriptionMessage {
-                        channel: channel.clone(),
-                        msg: msg.clone(),
-                    })
-                    .await
-                    .is_err()
-                {
+                if client_channel.send(msg.clone()).await.is_err() {
                     tracing::error!(
                         client_id = %client_id,
                         channel = channel,

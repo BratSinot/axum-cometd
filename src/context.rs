@@ -13,9 +13,8 @@ use crate::{
 use ahash::{AHashMap, AHashSet};
 use axum::http::HeaderMap;
 use serde::Serialize;
-use serde_json::{json, Value as JsonValue};
-use std::ops::Deref;
-use std::{collections::hash_map::Entry, fmt::Debug, sync::Arc, time::Duration};
+use serde_json::json;
+use std::{collections::hash_map::Entry, fmt::Debug, ops::Deref, sync::Arc, time::Duration};
 use tokio::sync::{mpsc, RwLock};
 
 /// Context for sending messages to channels.
@@ -34,7 +33,7 @@ pub struct LongPollingServiceContext {
 #[derive(Debug)]
 pub(crate) struct Channel {
     client_ids: AHashSet<ClientId>,
-    tx: mpsc::Sender<JsonValue>,
+    tx: mpsc::Sender<SubscriptionMessage>,
 }
 
 impl Channel {
@@ -44,7 +43,7 @@ impl Channel {
     }
 
     #[inline(always)]
-    pub(crate) fn tx(&self) -> &mpsc::Sender<JsonValue> {
+    pub(crate) fn tx(&self) -> &mpsc::Sender<SubscriptionMessage> {
         &self.tx
     }
 }
@@ -94,12 +93,15 @@ impl LongPollingServiceContext {
         self.channel_name_validator
             .validate_send_channel_name(channel, SendError::InvalidChannel)?;
 
-        let json_message = json!(message);
+        let subscription_message = SubscriptionMessage {
+            channel: channel.to_string(),
+            msg: json!(message),
+        };
         let wildnames = self.wildnames_cache.fetch_wildnames(channel).await;
         let read_guard = self.channels_data.read().await;
         for channel in std::iter::once(channel).chain(wildnames.iter().map(String::deref)) {
             if let Some(tx) = read_guard.get(channel).map(Channel::tx) {
-                tx.send(json_message.clone()).await?;
+                tx.send(subscription_message.clone()).await?;
             } else {
                 tracing::trace!(
                     channel = channel,
@@ -193,12 +195,25 @@ impl LongPollingServiceContext {
 
         let mut channels_data_write_guard = self.channels_data.write().await;
         for channel in channels.iter() {
-            let wildnames = self.wildnames_cache.fetch_wildnames(channel).await;
-            std::iter::once(channel)
-                .chain(wildnames.iter())
-                .for_each(|channel| {
-                    insert_client_id(self, client_id, &mut channels_data_write_guard, channel);
-                });
+            match channels_data_write_guard.entry(channel.to_string()) {
+                Entry::Occupied(o) => o.into_mut(),
+                Entry::Vacant(v) => {
+                    let (tx, rx) = mpsc::channel(self.consts.subscription_channel_capacity);
+
+                    subscription_task::spawn(channel.to_string(), rx, self.clone());
+                    tracing::info!(
+                        channel = channel,
+                        "New subscription ({channel}) channel was registered."
+                    );
+
+                    v.insert(Channel {
+                        client_ids: Default::default(),
+                        tx,
+                    })
+                }
+            }
+            .client_ids
+            .insert(client_id);
         }
 
         tracing::info!(
@@ -291,31 +306,4 @@ impl LongPollingServiceContext {
             .get(client_id)
             .map(ClientSender::subscribe)
     }
-}
-
-#[inline(always)]
-fn insert_client_id(
-    inner: &Arc<LongPollingServiceContext>,
-    client_id: ClientId,
-    channels_data: &mut AHashMap<ChannelId, Channel>,
-    channel: &str,
-) {
-    channels_data
-        .entry(channel.to_string())
-        .or_insert_with(|| {
-            let (tx, rx) = mpsc::channel(inner.consts.subscription_channel_capacity);
-
-            subscription_task::spawn(channel.to_string(), rx, inner.clone());
-            tracing::info!(
-                channel = channel,
-                "New subscription ({channel}) channel was registered."
-            );
-
-            Channel {
-                client_ids: Default::default(),
-                tx,
-            }
-        })
-        .client_ids
-        .insert(client_id);
 }
