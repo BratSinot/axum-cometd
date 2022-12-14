@@ -12,9 +12,8 @@ fn build_mock_client() -> ClientMock {
         .timeout_ms(TIMEOUT_MS)
         .build();
     let router = RouterBuilder::new().build(&context);
-    let mock_client = ClientMock::create("", "/", "", "", router);
 
-    mock_client
+    ClientMock::create("", "/", "", "", router)
 }
 
 #[tokio::test]
