@@ -1,9 +1,9 @@
 mod http_handler_error;
 
+use crate::ClientId;
 use async_broadcast::SendError as AsyncSendError;
 use tokio::sync::mpsc::error::SendError as TokioSendError;
 
-use crate::ClientId;
 pub(crate) use http_handler_error::*;
 
 /// Error returned by the `LongPoolingServiceContext::send`.

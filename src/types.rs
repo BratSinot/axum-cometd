@@ -4,6 +4,8 @@ mod client_receiver;
 mod client_sender;
 mod subscription_id;
 
+/// Contains errors.
+pub mod error;
 /// Contains cometd Message struct.
 pub mod messages;
 

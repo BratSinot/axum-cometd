@@ -18,7 +18,6 @@
 //!
 
 mod context;
-mod error;
 mod handlers;
 mod types;
 mod utils;
