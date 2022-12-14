@@ -1,23 +1,9 @@
 use axum::Router;
 use axum_cometd::{LongPollingServiceContextBuilder, RouterBuilder};
-use serde_json::{json, Value as JsonValue};
-use std::sync::Arc;
-use std::time::Duration;
+use serde_json::json;
+use std::{sync::Arc, time::Duration};
 use test_common::*;
 use tokio::{sync::Mutex, try_join};
-
-async fn receive_message_and_extract_data(app: &Router, client_id: &str) -> JsonValue {
-    let response = receive_message(app, "/root/conn", client_id).await;
-    let [mut resp, mut data] = serde_json::from_value::<[JsonValue; 2]>(response).unwrap();
-
-    if resp.get("data").is_some() {
-        std::mem::swap(&mut resp, &mut data);
-    }
-
-    assert!(resp["successful"].as_bool().unwrap());
-
-    data["data"].take()
-}
 
 #[tokio::test]
 async fn test_different_paths() {
@@ -35,13 +21,20 @@ async fn test_different_paths() {
         .connect_base_path("/conn")
         .disconnect_base_path("/disconn");
     let _ = format!("{builder:?}");
-    let app = Router::new().nest("/root", builder.build(&context));
+    let router = Router::new().nest("/root", builder.build(&context));
 
-    let client_id = get_client_id(&app, "/root/hand", 60_000).await;
-    subscribe_to_channel(&app, "/root/sub", &client_id, "/SUPER_IMPORTANT_CHANNEL").await;
+    let mut mock_client = ClientMock::create(
+        "/root/hand",
+        "/root/sub",
+        "/root/conn",
+        "/root/disconn",
+        router,
+    );
 
-    let (data, ()) = try_join!(
-        async { Ok(receive_message_and_extract_data(&app, &client_id).await) },
+    mock_client.handshake().await;
+    mock_client.subscribe(&["/SUPER_IMPORTANT_CHANNEL"]).await;
+    let (response, ()) = try_join!(
+        async { Ok(mock_client.connect().await) },
         context.send(
             "/SUPER_IMPORTANT_CHANNEL",
             json!({"msg": "integration_test"})
@@ -49,21 +42,12 @@ async fn test_different_paths() {
     )
     .unwrap();
 
-    assert_eq!(data, json!({"msg": "integration_test"}));
-
-    let response = receive_message(&app, "/root/conn", &client_id).await;
     assert_eq!(
-        response,
-        json!([{
-            "id": "4",
-            "advice": {
-                "interval":0,
-                "reconnect":"retry",
-                "timeout": 1000
-            },
-            "channel": "/meta/connect",
-            "successful":true
-        }])
+        &response,
+        &[(
+            "/SUPER_IMPORTANT_CHANNEL".to_owned(),
+            json!({"msg": "integration_test"})
+        )]
     );
 }
 
@@ -100,12 +84,14 @@ async fn test_callbacks() {
         })
         .build();
 
-    let app = RouterBuilder::new().build(&context);
+    let router = RouterBuilder::new().build(&context);
 
-    let response_client_id = get_client_id(&app, "", 0).await;
+    let mut mock_client = ClientMock::create("", "/", "", "", router);
+    mock_client.handshake().await;
+    let client_id = mock_client.client_id().unwrap();
 
     tokio::time::sleep(Duration::from_secs(1)).await;
 
-    assert_eq!(*client_id_check.lock().await, response_client_id);
-    assert_eq!(*removed_client_id.lock().await, response_client_id);
+    assert_eq!(*client_id_check.lock().await, client_id);
+    assert_eq!(*removed_client_id.lock().await, client_id);
 }

@@ -1,3 +1,4 @@
+// TODO: ret.insert(0, <...>) => ret.push(<...>)
 pub(crate) fn get_wild_names(name: &str) -> Vec<String> {
     let mut segments = name.split('/');
     let last_segment = segments.next_back();
@@ -33,7 +34,7 @@ mod tests {
 
     #[test]
     fn test_count_wildnames() {
-        for (name, result) in TEST_WILDNAMES {
+        for (name, result) in TEST_WILDNAMES.iter() {
             if let Ok(result) = result {
                 if !name.ends_with("/*") && !name.ends_with("/**") {
                     assert_eq!(count_wildnames(name), result.len(), "{name}");
