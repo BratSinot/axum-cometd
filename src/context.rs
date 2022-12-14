@@ -149,7 +149,6 @@ impl LongPollingServiceContext {
                 let client_id = CLIENT_ID_GEN.next();
 
                 match client_id_channels_write_guard.entry(client_id) {
-                    Entry::Occupied(_) => continue,
                     Entry::Vacant(v) => {
                         let (tx, rx) =
                             async_broadcast::broadcast(self.consts.client_channel_capacity);
@@ -162,6 +161,7 @@ impl LongPollingServiceContext {
                         ));
                         break client_id;
                     }
+                    Entry::Occupied(_) => continue,
                 }
             }
         };
@@ -300,9 +300,9 @@ fn insert_client_id(
     channels_data: &mut AHashMap<ChannelId, Channel>,
     channel: &str,
 ) {
-    match channels_data.entry(channel.to_string()) {
-        Entry::Occupied(o) => o.into_mut(),
-        Entry::Vacant(v) => {
+    channels_data
+        .entry(channel.to_string())
+        .or_insert_with(|| {
             let (tx, rx) = mpsc::channel(inner.consts.subscription_channel_capacity);
 
             subscription_task::spawn(channel.to_string(), rx, inner.clone());
@@ -311,12 +311,11 @@ fn insert_client_id(
                 "New subscription ({channel}) channel was registered."
             );
 
-            v.insert(Channel {
+            Channel {
                 client_ids: Default::default(),
                 tx,
-            })
-        }
-    }
-    .client_ids
-    .insert(client_id);
+            }
+        })
+        .client_ids
+        .insert(client_id);
 }

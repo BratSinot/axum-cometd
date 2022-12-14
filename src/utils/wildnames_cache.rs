@@ -1,6 +1,6 @@
 use crate::{types::ChannelId, utils::get_wild_names};
 use ahash::{AHashMap, AHashSet};
-use std::{collections::hash_map::Entry, sync::Arc};
+use std::sync::Arc;
 use tokio::sync::RwLock;
 
 #[derive(Debug, Default)]
@@ -17,13 +17,10 @@ impl WildNamesCache {
         } else {
             drop(read_guard);
             let mut write_guard = self.cache.write().await;
-            match write_guard.entry(name.to_string()) {
-                Entry::Occupied(o) => o.get().clone(),
-                Entry::Vacant(v) => {
-                    let wildnames = get_wild_names(name);
-                    v.insert(Arc::new(wildnames)).clone()
-                }
-            }
+            write_guard
+                .entry(name.to_string())
+                .or_insert_with(|| Arc::new(get_wild_names(name)))
+                .clone()
         }
     }
 
