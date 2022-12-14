@@ -1,5 +1,10 @@
 #[rustfmt::skip]
-pub const TEST_WILDNAMES: [(&str, Result<&[&str], ()>); 39] = [
+pub const TEST_WILDNAMES: [(&str, Result<&[&str], ()>); 42] = [
+    // 0 nest level
+    (r#""#, Err(())),
+    (r#"/*"#, Ok(&[])),
+    (r#"/**"#, Ok(&[])),
+    // 1 nest level
     ("/first1", Ok(&["/*","/**"])),
     ("/first1*", Err(())),
     ("/first1**", Err(())),
@@ -8,6 +13,7 @@ pub const TEST_WILDNAMES: [(&str, Result<&[&str], ()>); 39] = [
     ("/first1/ *", Err(())),
     ("/first1/**", Ok(&[])),
     ("/first1/ **", Err(())),
+    // 2 nest levels
     ("/first1/second2", Ok(&["/first1/*","/first1/**","/**"])),
     ("/first1/second2*", Err(())),
     ("/first1/second2**", Err(())),
@@ -16,6 +22,7 @@ pub const TEST_WILDNAMES: [(&str, Result<&[&str], ()>); 39] = [
     ("/first1/second2/ *", Err(())),
     ("/first1/second2/**", Ok(&[])),
     ("/first1/second2/ **", Err(())),
+    // 3 nest levels
     ("/first1/second2/third3", Ok(&["/first1/second2/*","/first1/second2/**","/first1/**","/**"])),
     ("/first1/second2/third3*", Err(())),
     ("/first1/second2/third3**", Err(())),
@@ -24,6 +31,7 @@ pub const TEST_WILDNAMES: [(&str, Result<&[&str], ()>); 39] = [
     ("/first1/second2/third3/ *", Err(())),
     ("/first1/second2/third3/**", Ok(&[])),
     ("/first1/second2/third3/ **", Err(())),
+    // 4 nest levels + special chars
     ("/first1/second2/third3/-_!~()$@", Ok(&["/first1/second2/third3/*","/first1/second2/third3/**","/first1/second2/**","/first1/**","/**"])),
     ("/first1/second2/third3/-_!~()$@*", Err(())),
     ("/first1/second2/third3/-_!~()$@**", Err(())),
@@ -32,6 +40,7 @@ pub const TEST_WILDNAMES: [(&str, Result<&[&str], ()>); 39] = [
     ("/first1/second2/third3/-_!~()$@/ *", Err(())),
     ("/first1/second2/third3/-_!~()$@/**", Ok(&[])),
     ("/first1/second2/third3/-_!~()$@/ **", Err(())),
+    // use wild characters in the middle
     ("/first1/*/third3", Err(())),
     ("/first1/*/third3/", Err(())),
     ("/first1/*/third3/*", Err(())),

@@ -2,7 +2,7 @@ pub(crate) fn get_wild_names(name: &str) -> Vec<String> {
     let mut segments = name.split('/');
     let last_segment = segments.next_back();
 
-    if !matches!(last_segment, Some("*") | Some("**")) {
+    if !name.is_empty() && !matches!(last_segment, Some("*") | Some("**")) {
         let len = count_wildnames(name);
 
         let mut ret = Vec::with_capacity(len);

@@ -1,7 +1,7 @@
 use regex::Regex;
 
 const VALID_SUBSCRIBE_CHANNEL_NAME_REGEX: &str =
-    r#"^(?:/[a-zA-Z0-9\-_!~()$@]+)+(?:(?:/\*\*)|(?:/\*)|/)?$"#;
+    r#"^(?:/[a-zA-Z0-9\-_!~()$@]+)*(?:(?:/\*\*)|(?:/\*)|/)?$"#;
 const VALID_SEND_CHANNEL_NAME_REGEX: &str = r#"^(?:/[a-zA-Z0-9\-_!~()$@]+)+(?:/)?$"#;
 
 #[derive(Debug)]
@@ -26,17 +26,25 @@ impl Default for ChannelNameValidator {
 impl ChannelNameValidator {
     #[inline(always)]
     pub(crate) fn validate_subscribe_channel_name<E>(&self, name: &str, error: E) -> Result<(), E> {
-        self.subscribe_channel_name_regex
-            .is_match(name)
-            .then_some(())
-            .ok_or(error)
+        if name.is_empty() {
+            Err(error)
+        } else {
+            self.subscribe_channel_name_regex
+                .is_match(name)
+                .then_some(())
+                .ok_or(error)
+        }
     }
 
     #[inline(always)]
     pub(crate) fn validate_send_channel_name<E>(&self, name: &str, error: E) -> Result<(), E> {
-        self.send_channel_name_regex
-            .is_match(name)
-            .then_some(())
-            .ok_or(error)
+        if name.is_empty() {
+            Err(error)
+        } else {
+            self.send_channel_name_regex
+                .is_match(name)
+                .then_some(())
+                .ok_or(error)
+        }
     }
 }
