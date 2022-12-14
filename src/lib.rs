@@ -18,9 +18,7 @@
 //!
 
 mod context;
-mod error;
 mod handlers;
-mod messages;
 mod types;
 mod utils;
 
