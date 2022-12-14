@@ -1,7 +1,6 @@
-use crate::messages::SubscriptionMessage;
 use crate::{
     context::Channel,
-    messages::{Advice, Message},
+    messages::{Advice, Message, SubscriptionMessage},
     LongPollingServiceContext,
 };
 use axum::http::StatusCode;

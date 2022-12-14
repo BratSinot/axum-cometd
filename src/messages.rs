@@ -1,6 +1,4 @@
 mod de;
-#[cfg(test)]
-mod test;
 
 use crate::types::{ChannelId, ClientId};
 use axum::Json;

@@ -24,6 +24,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::unwrap_used)]
+
     use serde::Deserialize;
     use serde_json::{from_value, json};
 
