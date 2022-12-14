@@ -1,6 +1,6 @@
 use crate::{handlers::*, LongPollingServiceContext};
 use axum::{routing::post, Router};
-use std::{fmt::Debug, sync::Arc, time::Duration};
+use std::{fmt::Debug, sync::Arc};
 
 /// A builder to construct `axum::Route` of CometD server.
 #[derive(Debug)]
