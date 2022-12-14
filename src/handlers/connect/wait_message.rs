@@ -25,7 +25,7 @@ pub(super) async fn wait_client_message_handle(
     let client_id = client_id.ok_or_else(session_unknown)?;
     let timeout = advice
         .and_then(|advice| advice.timeout)
-        .unwrap_or(context.consts().timeout_ms);
+        .unwrap_or(context.consts.timeout_ms);
 
     let mut rx = context
         .get_client_receiver(&client_id)
@@ -43,8 +43,8 @@ pub(super) async fn wait_client_message_handle(
             channel: channel.clone(),
             successful: Some(true),
             advice: Some(Advice::retry(
-                context.consts().timeout_ms,
-                context.consts().interval_ms,
+                context.consts.timeout_ms,
+                context.consts.interval_ms,
             )),
             ..Default::default()
         })?

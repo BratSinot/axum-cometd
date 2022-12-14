@@ -87,6 +87,7 @@ impl LongPollingServiceContextBuilder {
         Arc::new(LongPollingServiceContext {
             session_added,
             session_removed,
+            wildnames_cache: Default::default(),
             channel_name_validator: Default::default(),
             consts,
             channels_data: RwLock::new(AHashMap::with_capacity(subscriptions_storage_capacity)),

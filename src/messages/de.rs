@@ -1,6 +1,6 @@
 use serde::{Deserialize, Deserializer};
 
-#[inline]
+#[inline(always)]
 pub(super) fn deserialize_subscription<'de, D>(
     deserializer: D,
 ) -> Result<Option<Vec<String>>, D::Error>

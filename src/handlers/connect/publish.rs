@@ -19,7 +19,7 @@ pub(super) async fn publish_handle(
     }) {
         Err(StatusCode::BAD_REQUEST)
     } else {
-        let subscriptions_data_read_guard = context.subscriptions_data().read().await;
+        let subscriptions_data_read_guard = context.channels_data.read().await;
 
         for message in messages.iter_mut() {
             let Message {

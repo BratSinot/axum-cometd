@@ -1,7 +1,8 @@
 mod send_channel_names;
 mod subscribe_channel_names;
+mod wildnames;
 
-pub use {send_channel_names::*, subscribe_channel_names::*};
+pub use {send_channel_names::*, subscribe_channel_names::*, wildnames::*};
 
 use axum::{
     body::Body,
