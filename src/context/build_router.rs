@@ -1,7 +1,6 @@
 use crate::{handlers::*, LongPollingServiceContext};
 use axum::{routing::post, Router};
-use std::{fmt::Debug, sync::Arc, time::Duration};
-use tower_http::timeout::TimeoutLayer;
+use std::{fmt::Debug, sync::Arc};
 
 /// A builder to construct `axum::Route` of CometD server.
 #[derive(Debug)]
@@ -58,9 +57,6 @@ impl RouterBuilder {
                 post(disconnect),
             )
             .with_state(context.clone())
-            .layer(TimeoutLayer::new(Duration::from_millis(
-                context.consts.timeout_ms,
-            )))
     }
 
     /// Set subscribe base-path for routers.
