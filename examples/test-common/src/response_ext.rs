@@ -1,5 +1,4 @@
-use axum::async_trait;
-use axum::response::Response;
+use axum::{async_trait, response::Response};
 use serde_json::Value as JsonValue;
 
 #[async_trait]
