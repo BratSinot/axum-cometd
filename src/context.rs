@@ -13,9 +13,8 @@ use crate::{
 use ahash::{AHashMap, AHashSet};
 use axum::http::HeaderMap;
 use serde::Serialize;
-use serde_json::{json, Value as JsonValue};
-use std::ops::Deref;
-use std::{collections::hash_map::Entry, fmt::Debug, sync::Arc, time::Duration};
+use serde_json::json;
+use std::{collections::hash_map::Entry, fmt::Debug, ops::Deref, sync::Arc, time::Duration};
 use tokio::sync::{mpsc, RwLock};
 
 /// Context for sending messages to channels.
@@ -34,7 +33,7 @@ pub struct LongPollingServiceContext {
 #[derive(Debug)]
 pub(crate) struct Channel {
     client_ids: AHashSet<ClientId>,
-    tx: mpsc::Sender<JsonValue>,
+    tx: mpsc::Sender<SubscriptionMessage>,
 }
 
 impl Channel {
@@ -44,7 +43,7 @@ impl Channel {
     }
 
     #[inline(always)]
-    pub(crate) fn tx(&self) -> &mpsc::Sender<JsonValue> {
+    pub(crate) fn tx(&self) -> &mpsc::Sender<SubscriptionMessage> {
         &self.tx
     }
 }
@@ -94,12 +93,15 @@ impl LongPollingServiceContext {
         self.channel_name_validator
             .validate_send_channel_name(channel, SendError::InvalidChannel)?;
 
-        let json_message = json!(message);
+        let subscription_message = SubscriptionMessage {
+            channel: channel.to_string(),
+            msg: json!(message),
+        };
         let wildnames = self.wildnames_cache.fetch_wildnames(channel).await;
         let read_guard = self.channels_data.read().await;
         for channel in std::iter::once(channel).chain(wildnames.iter().map(String::deref)) {
             if let Some(tx) = read_guard.get(channel).map(Channel::tx) {
-                tx.send(json_message.clone()).await?;
+                tx.send(subscription_message.clone()).await?;
             } else {
                 tracing::trace!(
                     channel = channel,

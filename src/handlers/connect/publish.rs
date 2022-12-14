@@ -1,3 +1,4 @@
+use crate::messages::SubscriptionMessage;
 use crate::{
     context::Channel,
     messages::{Advice, Message},
@@ -38,7 +39,14 @@ pub(super) async fn publish_handle(
                         if let Some(tx) =
                             subscriptions_data_read_guard.get(&channel).map(Channel::tx)
                         {
-                            if tx.send(data.unwrap_or_default()).await.is_err() {
+                            if tx
+                                .send(SubscriptionMessage {
+                                    channel: channel.clone(),
+                                    msg: data.unwrap_or_default(),
+                                })
+                                .await
+                                .is_err()
+                            {
                                 tracing::error!(
                                     client_id = %client_id,
                                     channel = channel,
