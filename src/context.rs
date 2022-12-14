@@ -193,12 +193,25 @@ impl LongPollingServiceContext {
 
         let mut channels_data_write_guard = self.channels_data.write().await;
         for channel in channels.iter() {
-            let wildnames = self.wildnames_cache.fetch_wildnames(channel).await;
-            std::iter::once(channel)
-                .chain(wildnames.iter())
-                .for_each(|channel| {
-                    insert_client_id(self, client_id, &mut channels_data_write_guard, channel);
-                });
+            match channels_data_write_guard.entry(channel.to_string()) {
+                Entry::Occupied(o) => o.into_mut(),
+                Entry::Vacant(v) => {
+                    let (tx, rx) = mpsc::channel(self.consts.subscription_channel_capacity);
+
+                    subscription_task::spawn(channel.to_string(), rx, self.clone());
+                    tracing::info!(
+                        channel = channel,
+                        "New subscription ({channel}) channel was registered."
+                    );
+
+                    v.insert(Channel {
+                        client_ids: Default::default(),
+                        tx,
+                    })
+                }
+            }
+            .client_ids
+            .insert(client_id);
         }
 
         tracing::info!(
@@ -291,31 +304,4 @@ impl LongPollingServiceContext {
             .get(client_id)
             .map(ClientSender::subscribe)
     }
-}
-
-#[inline(always)]
-fn insert_client_id(
-    inner: &Arc<LongPollingServiceContext>,
-    client_id: ClientId,
-    channels_data: &mut AHashMap<ChannelId, Channel>,
-    channel: &str,
-) {
-    channels_data
-        .entry(channel.to_string())
-        .or_insert_with(|| {
-            let (tx, rx) = mpsc::channel(inner.consts.subscription_channel_capacity);
-
-            subscription_task::spawn(channel.to_string(), rx, inner.clone());
-            tracing::info!(
-                channel = channel,
-                "New subscription ({channel}) channel was registered."
-            );
-
-            Channel {
-                client_ids: Default::default(),
-                tx,
-            }
-        })
-        .client_ids
-        .insert(client_id);
 }
