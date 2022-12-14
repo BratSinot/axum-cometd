@@ -1,4 +1,8 @@
-pub const TEST_SUBSCRIBE_CHANNEL_NAMES: [(&str, bool); 39] = [
+pub const TEST_SUBSCRIBE_CHANNEL_NAMES: [(&str, bool); 42] = [
+    // 0 nest level
+    (r#""#, false),
+    (r#"/*"#, true),
+    (r#"/**"#, true),
     // 1 nest level
     (r#"/first1"#, true),
     (r#"/first1*"#, false),
