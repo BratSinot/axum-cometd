@@ -25,9 +25,9 @@ pub struct LongPollingServiceContext {
     session_removed: Callback<(Arc<LongPollingServiceContext>, ClientId)>,
 
     wildnames_cache: WildNamesCache,
-    channel_name_validator: ChannelNameValidator,
-    consts: LongPollingServiceContextConsts,
-    channels_data: RwLock<AHashMap<ChannelId, Channel>>,
+    pub(crate) channel_name_validator: ChannelNameValidator,
+    pub(crate) consts: LongPollingServiceContextConsts,
+    pub(crate) channels_data: RwLock<AHashMap<ChannelId, Channel>>,
     client_id_senders: Arc<RwLock<AHashMap<ClientId, ClientSender>>>,
 }
 
@@ -86,22 +86,24 @@ impl LongPollingServiceContext {
     /// # };
     /// ```
     #[inline]
-    pub async fn send<Msg>(&self, channel: &str, msg: Msg) -> Result<(), SendError>
-    where
-        Msg: Debug + Serialize,
-    {
+    pub async fn send(
+        &self,
+        channel: &str,
+        message: impl Debug + Serialize,
+    ) -> Result<(), SendError> {
         self.channel_name_validator
             .validate_send_channel_name(channel, SendError::InvalidChannel)?;
 
+        let json_message = json!(message);
         let wildnames = self.wildnames_cache.fetch_wildnames(channel).await;
         let read_guard = self.channels_data.read().await;
         for channel in std::iter::once(channel).chain(wildnames.iter().map(String::deref)) {
             if let Some(tx) = read_guard.get(channel).map(Channel::tx) {
-                tx.send(json!(msg)).await?;
+                tx.send(json_message.clone()).await?;
             } else {
                 tracing::trace!(
                     channel = channel,
-                    "No `{channel}` channel was found for message: `{msg:?}`."
+                    "No `{channel}` channel was found for message: `{message:?}`."
                 );
             }
         }
@@ -111,15 +113,12 @@ impl LongPollingServiceContext {
 
     /// Send message direct to client.
     #[inline]
-    pub async fn send_to_client<Msg>(
+    pub async fn send_to_client(
         &self,
         channel: &str,
         client_id: &ClientId,
-        msg: Msg,
-    ) -> Result<(), SendError>
-    where
-        Msg: Debug + Serialize,
-    {
+        msg: impl Debug + Serialize,
+    ) -> Result<(), SendError> {
         self.channel_name_validator
             .validate_send_channel_name(channel, SendError::InvalidChannel)?;
 
@@ -198,7 +197,7 @@ impl LongPollingServiceContext {
             std::iter::once(channel)
                 .chain(wildnames.iter())
                 .for_each(|channel| {
-                    self.insert_client_id(client_id, &mut channels_data_write_guard, channel);
+                    insert_client_id(self, client_id, &mut channels_data_write_guard, channel);
                 });
         }
 
@@ -211,35 +210,7 @@ impl LongPollingServiceContext {
         Ok(())
     }
 
-    #[inline(always)]
-    fn insert_client_id(
-        self: &Arc<Self>,
-        client_id: ClientId,
-        channels_data: &mut AHashMap<ChannelId, Channel>,
-        channel: &str,
-    ) {
-        match channels_data.entry(channel.to_string()) {
-            Entry::Occupied(o) => o.into_mut(),
-            Entry::Vacant(v) => {
-                let (tx, rx) = mpsc::channel(self.consts.subscription_channel_capacity);
-
-                subscription_task::spawn(channel.to_string(), rx, self.clone());
-                tracing::info!(
-                    channel = channel,
-                    "New subscription ({channel}) channel was registered."
-                );
-
-                v.insert(Channel {
-                    client_ids: Default::default(),
-                    tx,
-                })
-            }
-        }
-        .client_ids
-        .insert(client_id);
-    }
-
-    // TODO: Spawn task and send unsubscribe command through channel.
+    // TODO: Spawn task and send unsubscribe command through channel?
     /// Remove client.
     #[inline]
     pub async fn unsubscribe(self: &Arc<Self>, client_id: ClientId) {
@@ -312,21 +283,6 @@ impl LongPollingServiceContext {
         self.client_id_senders.read().await.contains_key(client_id)
     }
 
-    #[inline(always)]
-    pub(crate) fn channel_name_validator(&self) -> &ChannelNameValidator {
-        &self.channel_name_validator
-    }
-
-    #[inline(always)]
-    pub(crate) fn consts(&self) -> &LongPollingServiceContextConsts {
-        &self.consts
-    }
-
-    #[inline(always)]
-    pub(crate) fn subscriptions_data(&self) -> &RwLock<AHashMap<ChannelId, Channel>> {
-        &self.channels_data
-    }
-
     #[inline]
     pub(crate) async fn get_client_receiver(&self, client_id: &ClientId) -> Option<ClientReceiver> {
         self.client_id_senders
@@ -335,4 +291,32 @@ impl LongPollingServiceContext {
             .get(client_id)
             .map(ClientSender::subscribe)
     }
+}
+
+#[inline(always)]
+fn insert_client_id(
+    inner: &Arc<LongPollingServiceContext>,
+    client_id: ClientId,
+    channels_data: &mut AHashMap<ChannelId, Channel>,
+    channel: &str,
+) {
+    match channels_data.entry(channel.to_string()) {
+        Entry::Occupied(o) => o.into_mut(),
+        Entry::Vacant(v) => {
+            let (tx, rx) = mpsc::channel(inner.consts.subscription_channel_capacity);
+
+            subscription_task::spawn(channel.to_string(), rx, inner.clone());
+            tracing::info!(
+                channel = channel,
+                "New subscription ({channel}) channel was registered."
+            );
+
+            v.insert(Channel {
+                client_ids: Default::default(),
+                tx,
+            })
+        }
+    }
+    .client_ids
+    .insert(client_id);
 }

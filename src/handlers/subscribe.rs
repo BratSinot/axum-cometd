@@ -30,7 +30,7 @@ pub(crate) async fn subscribe(
 
         let validate = |name: &String| {
             context
-                .channel_name_validator()
+                .channel_name_validator
                 .validate_subscribe_channel_name(name, StatusCode::BAD_REQUEST)
         };
         subscription.iter().try_for_each(validate)?;
