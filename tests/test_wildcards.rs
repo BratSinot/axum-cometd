@@ -30,7 +30,7 @@ async fn test_single_wildcard() {
     let (context, mut mock_client) = build_context_and_mock_client();
 
     mock_client.handshake().await;
-    mock_client.subscribe(&["/*"]).await;
+    mock_client.subscribe(&["/*"]).await.unwrap();
 
     let test_message = gen_message();
     let (responses, ()) = try_join!(
@@ -56,7 +56,7 @@ async fn test_all_wildcard() {
     let (context, mut mock_client) = build_context_and_mock_client();
 
     mock_client.handshake().await;
-    mock_client.subscribe(&["/**"]).await;
+    mock_client.subscribe(&["/**"]).await.unwrap();
 
     let test_message = gen_message();
     let (responses, ()) = try_join!(
@@ -93,7 +93,7 @@ async fn test_nested_single_wildcard() {
     let (context, mut mock_client) = build_context_and_mock_client();
 
     mock_client.handshake().await;
-    mock_client.subscribe(&["/topic/*"]).await;
+    mock_client.subscribe(&["/topic/*"]).await.unwrap();
 
     let test_message = gen_message();
     let (responses, ()) = try_join!(
@@ -127,7 +127,7 @@ async fn test_nested_all_wildcard() {
     let (context, mut mock_client) = build_context_and_mock_client();
 
     mock_client.handshake().await;
-    mock_client.subscribe(&["/topic/**"]).await;
+    mock_client.subscribe(&["/topic/**"]).await.unwrap();
 
     let test_message = gen_message();
     let (responses, ()) = try_join!(

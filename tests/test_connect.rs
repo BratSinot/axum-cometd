@@ -95,7 +95,7 @@ async fn test_client_doesnt_exist() {
 async fn test_reconnect() {
     let mut mock_client = build_mock_client();
     mock_client.handshake().await;
-    mock_client.subscribe(&["/FOO_BAR"]).await;
+    mock_client.subscribe(&["/FOO_BAR"]).await.unwrap();
 
     let id = mock_client.next_id();
     let response = mock_client
@@ -131,7 +131,7 @@ async fn test_reconnect() {
 async fn test_channel_was_closed() {
     let mut mock_client = build_mock_client();
     mock_client.handshake().await;
-    mock_client.subscribe(&["/FOO_BAR"]).await;
+    mock_client.subscribe(&["/FOO_BAR"]).await.unwrap();
 
     let id = mock_client.next_id();
     let ((), response) = join!(
@@ -160,7 +160,7 @@ async fn test_channel_was_closed() {
 async fn test_double_connect_same_client_id() {
     let mut mock_client = build_mock_client();
     mock_client.handshake().await;
-    mock_client.subscribe(&["/FOO_BAR"]).await;
+    mock_client.subscribe(&["/FOO_BAR"]).await.unwrap();
 
     let connect = || async {
         let id = mock_client.next_id();
