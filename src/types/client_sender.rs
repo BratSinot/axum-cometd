@@ -5,9 +5,11 @@ use crate::{
     types::{ClientId, ClientReceiver},
     LongPollingServiceContext,
 };
-use async_broadcast::{InactiveReceiver, SendError, Sender, TrySendError};
 use std::{fmt::Debug, sync::Arc, time::Duration};
-use tokio::sync::Notify;
+use tokio::sync::{
+    mpsc::{error::SendError, Receiver, Sender},
+    Mutex, Notify,
+};
 use tokio_util::sync::CancellationToken;
 
 #[derive(Debug)]
@@ -16,7 +18,7 @@ pub(crate) struct ClientSender {
     start_timeout: Arc<Notify>,
     cancel_timeout: Arc<Notify>,
     tx: Sender<SubscriptionMessage>,
-    inactive_rx: InactiveReceiver<SubscriptionMessage>,
+    rx: Arc<Mutex<Receiver<SubscriptionMessage>>>,
 }
 
 impl ClientSender {
@@ -26,11 +28,12 @@ impl ClientSender {
         client_id: ClientId,
         timeout: Duration,
         tx: Sender<SubscriptionMessage>,
-        inactive_rx: InactiveReceiver<SubscriptionMessage>,
+        rx: Receiver<SubscriptionMessage>,
     ) -> Self {
         let stop_signal = CancellationToken::new();
         let start_timeout = Arc::new(Notify::new());
         let cancel_timeout = Arc::new(Notify::new());
+        let rx = Arc::new(Mutex::new(rx));
 
         client_timeout::spawn(
             context,
@@ -48,7 +51,7 @@ impl ClientSender {
             start_timeout,
             cancel_timeout,
             tx,
-            inactive_rx,
+            rx,
         }
     }
 
@@ -57,25 +60,17 @@ impl ClientSender {
         self.cancel_timeout.notify_waiters();
 
         let start_timeout = self.start_timeout.clone();
-        let rx = self.inactive_rx.activate_cloned();
+        let rx = self.rx.clone();
 
         ClientReceiver::new(start_timeout, rx)
     }
 
-    #[inline]
+    #[inline(always)]
     pub(crate) async fn send(
         &self,
         msg: SubscriptionMessage,
     ) -> Result<(), SendError<SubscriptionMessage>> {
-        match self.tx.try_broadcast(msg) {
-            Ok(None) | Err(TrySendError::Inactive(_)) => Ok(()),
-            Ok(Some(msg)) | Err(TrySendError::Full(msg)) => match self.tx.broadcast(msg).await {
-                Ok(None) => Ok(()),
-                Err(err) => Err(err),
-                Ok(Some(_msg)) => unreachable!("broadcast overflow mode was enabled"),
-            },
-            Err(TrySendError::Closed(msg)) => Err(SendError(msg)),
-        }
+        self.tx.send(msg).await
     }
 }
 

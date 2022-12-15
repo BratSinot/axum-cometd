@@ -19,7 +19,6 @@ members = [
 
 [dependencies]
 ahash = "0.8"
-async-broadcast = "0.4"
 axum = { version = "0.6", default-features = false, features = ["http1", "http2", "json"] }
 once_cell = "1.16"
 rand = "0.8"

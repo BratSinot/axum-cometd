@@ -41,11 +41,8 @@ pub(crate) async fn subscribe(
             .map_err(|_| Message::session_unknown(id.clone(), channel.clone(), None))?;
 
         Ok(Json([Message {
-            id,
-            channel,
             subscription: Some(subscription),
-            successful: Some(true),
-            ..Default::default()
+            ..Message::ok(id, channel)
         }]))
     }
 }
