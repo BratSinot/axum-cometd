@@ -1,4 +1,5 @@
 use crate::ResponseExt;
+use ahash::AHashMap;
 use axum::{
     http::{header::CONTENT_TYPE, Request, StatusCode},
     response::Response,
@@ -117,8 +118,7 @@ impl ClientMock {
             .iter()
             .position(|message| message["id"].as_str() == Some(&id))
             .expect("The response corresponding request id cannot be found.");
-        let successful = messages.remove(position)["successful"].into_bool();
-        assert!(successful);
+        assert_eq!(messages.remove(position)["successful"], true);
 
         messages
             .into_iter()
@@ -140,6 +140,39 @@ impl ClientMock {
 
         let response = self.send_request(&self.disconnect_endpoint, body).await;
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    }
+
+    pub async fn publish(&self, send: impl IntoIterator<Item = (String, JsonValue)>) {
+        let client_id = self.client_id.as_deref().expect("Handshake first");
+
+        let (mut ids, body) = send
+            .into_iter()
+            .map(|(channel, data)| {
+                let id = self.next_id();
+                let data = json!({
+                  "id": id,
+                  "channel": channel,
+                  "data": data,
+                  "clientId": client_id,
+                });
+
+                ((id, channel), data)
+            })
+            .unzip::<_, _, AHashMap<_, _>, Vec<_>>();
+
+        let response = self
+            .send_request(&self.connect_endpoint, JsonValue::from(body))
+            .await;
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let responses = response.to_json().await.into_array();
+        assert_eq!(responses.len(), ids.len());
+
+        for message in responses {
+            let channel = ids.remove(message["id"].as_str().unwrap()).unwrap();
+            assert_eq!(message["channel"], channel);
+            assert_eq!(message["successful"], true);
+        }
     }
 
     #[inline(always)]

@@ -23,7 +23,7 @@ pub struct LongPollingServiceContext {
     session_added: Callback<(Arc<LongPollingServiceContext>, ClientId, HeaderMap)>,
     session_removed: Callback<(Arc<LongPollingServiceContext>, ClientId)>,
 
-    wildnames_cache: WildNamesCache,
+    pub(crate) wildnames_cache: WildNamesCache,
     pub(crate) channel_name_validator: ChannelNameValidator,
     pub(crate) consts: LongPollingServiceContextConsts,
     pub(crate) channels_data: RwLock<AHashMap<ChannelId, Channel>>,

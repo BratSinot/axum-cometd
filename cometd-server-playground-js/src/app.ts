@@ -69,10 +69,10 @@ let port = app.get('port');
 server.listen(port, function (): void {
     console.log(`Server running on port ${port}.`);
 
-    loop();
+    //loop();
 });
 
-function loop() {
+/*function loop() {
     setTimeout(function () {
         console.log("Publish");
         topic0.publish(
@@ -84,4 +84,4 @@ function loop() {
         );
         loop();
     }, 1000)
-}
+}*/

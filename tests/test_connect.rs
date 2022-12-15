@@ -2,7 +2,7 @@ use axum::http::StatusCode;
 use axum_cometd::{LongPollingServiceContextBuilder, RouterBuilder};
 use serde_json::json;
 use std::time::Duration;
-use test_common::{ClientMock, ResponseExt};
+use test_common::{ClientMock, ResponseExt, TEST_CLIENT_ID};
 use tokio::join;
 
 const TIMEOUT_MS: u64 = 1000;
@@ -70,7 +70,7 @@ async fn test_client_doesnt_exist() {
             mock_client.connect_endpoint(),
             json!([{
                 "channel": "/meta/connect",
-                "clientId": "5804e4865f649fb91645030760db1f358c837af9",
+                "clientId": TEST_CLIENT_ID,
             }]),
         )
         .await
