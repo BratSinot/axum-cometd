@@ -13,7 +13,7 @@ pub(super) fn spawn(
     cancel_timeout: Arc<Notify>,
 ) {
     tokio::task::spawn(async move {
-        while wait_until_client_disconnect(&stop_signal, &start_timeout).await {
+        loop {
             select! {
                 _ = stop_signal.cancelled() => break,
                 _ = time::sleep(timeout) => {
@@ -24,7 +24,11 @@ pub(super) fn spawn(
                     context.unsubscribe(client_id).await;
                     break;
                 }
-                _ = cancel_timeout.notified() => continue,
+                _ = cancel_timeout.notified() => {},
+            }
+
+            if wait_until_client_disconnect(&stop_signal, &start_timeout).await {
+                break;
             }
         }
     });
@@ -36,7 +40,7 @@ async fn wait_until_client_disconnect(
     start_timeout: &Notify,
 ) -> bool {
     select! {
-        _ = start_timeout.notified() => true,
-        _ = stop_signal.cancelled() => false,
+        _ = start_timeout.notified() => false,
+        _ = stop_signal.cancelled() => true,
     }
 }

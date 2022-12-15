@@ -132,7 +132,7 @@ async fn test_session_unknown() {
 async fn test_publish_invalid_channel() {
     let mut mock_client = build_mock_client();
     mock_client.handshake().await;
-    mock_client.subscribe(&["/*"]).await;
+    mock_client.subscribe(&["/*"]).await.unwrap();
 
     let msg = ("/topic*".to_owned(), gen_message());
     mock_client.publish([msg.clone()]).await;
@@ -147,7 +147,7 @@ async fn test_publish_invalid_channel() {
 async fn test_publish() {
     let mut mock_client = build_mock_client();
     mock_client.handshake().await;
-    mock_client.subscribe(&["/*"]).await;
+    mock_client.subscribe(&["/*"]).await.unwrap();
 
     let (msg0, msg1, msg2, msg3) = (
         ("/topic".to_owned(), gen_message()),

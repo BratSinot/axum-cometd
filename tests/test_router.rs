@@ -32,7 +32,10 @@ async fn test_different_paths() {
     );
 
     mock_client.handshake().await;
-    mock_client.subscribe(&["/SUPER_IMPORTANT_CHANNEL"]).await;
+    mock_client
+        .subscribe(&["/SUPER_IMPORTANT_CHANNEL"])
+        .await
+        .unwrap();
     let (response, ()) = try_join!(
         async { Ok(mock_client.connect().await) },
         context.send(

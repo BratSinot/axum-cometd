@@ -17,6 +17,7 @@ pub struct ClientMock {
     connect_endpoint: String,
     disconnect_endpoint: String,
 
+    last_id: AtomicU64,
     id: AtomicU64,
     client_id: Option<String>,
     router: Router,
@@ -36,7 +37,8 @@ impl ClientMock {
             subscribe_endpoint: subscribe_base_path.to_owned(),
             connect_endpoint: format!("{connect_base_path}/connect"),
             disconnect_endpoint: format!("{disconnect_base_path}/disconnect"),
-            id: AtomicU64::new(0),
+            last_id: Default::default(),
+            id: Default::default(),
             client_id: Default::default(),
             router,
         }
@@ -84,7 +86,7 @@ impl ClientMock {
         self.client_id = Some(client_id);
     }
 
-    pub async fn subscribe(&self, subscriptions: &[&str]) {
+    pub async fn subscribe(&self, subscriptions: &[&str]) -> Result<(), JsonValue> {
         let body = json!([{
           "id": self.next_id(),
           "channel": "/meta/subscribe",
@@ -96,8 +98,10 @@ impl ClientMock {
         assert_eq!(response.status(), StatusCode::OK);
 
         let json_body = response.to_json().await;
-        let successful = json_body[0]["successful"].into_bool();
-        assert!(successful);
+        json_body[0]["successful"]
+            .into_bool()
+            .then_some(())
+            .ok_or(json_body)
     }
 
     pub async fn connect(&self) -> Vec<(String, JsonValue)> {
@@ -177,7 +181,14 @@ impl ClientMock {
 
     #[inline(always)]
     pub fn next_id(&self) -> String {
-        self.id.fetch_add(1, Ordering::Relaxed).to_string()
+        let id = self.id.fetch_add(1, Ordering::SeqCst);
+        self.last_id.store(id, Ordering::SeqCst);
+        id.to_string()
+    }
+
+    #[inline(always)]
+    pub fn last_id(&self) -> String {
+        self.last_id.load(Ordering::SeqCst).to_string()
     }
 
     #[inline]
