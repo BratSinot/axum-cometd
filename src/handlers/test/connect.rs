@@ -163,16 +163,13 @@ async fn test_reconnect() {
     assert_eq!(
         message,
         Message {
-            id: Some("4".into()),
-            channel: Some("/meta/connect".into()),
-            successful: Some(true),
             advice: Some(Advice {
                 interval: Some(0),
                 reconnect: Some(Reconnect::Retry),
                 timeout: Some(20000),
                 ..Default::default()
             }),
-            ..Default::default()
+            ..Message::ok(Some("4".into()), Some("/meta/connect".into()))
         }
     );
 }

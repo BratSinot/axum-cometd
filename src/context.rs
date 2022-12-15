@@ -152,14 +152,13 @@ impl LongPollingServiceContext {
 
                 match client_id_channels_write_guard.entry(client_id) {
                     Entry::Vacant(v) => {
-                        let (tx, rx) =
-                            async_broadcast::broadcast(self.consts.client_channel_capacity);
+                        let (tx, rx) = mpsc::channel(self.consts.client_channel_capacity);
                         v.insert(ClientSender::create(
                             self.clone(),
                             client_id,
                             Duration::from_millis(self.consts.max_interval_ms),
                             tx,
-                            rx.deactivate(),
+                            rx,
                         ));
                         break client_id;
                     }

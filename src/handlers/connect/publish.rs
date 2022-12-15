@@ -1,7 +1,6 @@
 use crate::{
-    context::Channel,
-    messages::{Advice, Message, SubscriptionMessage},
-    LongPollingServiceContext,
+    messages::{Advice, Message},
+    LongPollingServiceContext, SendError,
 };
 use axum::http::StatusCode;
 
@@ -19,8 +18,6 @@ pub(super) async fn publish_handle(
     }) {
         Err(StatusCode::BAD_REQUEST)
     } else {
-        let subscriptions_data_read_guard = context.channels_data.read().await;
-
         for message in messages.iter_mut() {
             let Message {
                 id,
@@ -35,37 +32,28 @@ pub(super) async fn publish_handle(
                 (channel, None) => Message::session_unknown(id, channel, Some(Advice::handshake())),
                 (Some(channel), Some(client_id)) => {
                     if context.check_client_id(&client_id).await {
-                        if let Some(tx) =
-                            subscriptions_data_read_guard.get(&channel).map(Channel::tx)
-                        {
-                            if tx
-                                .send(SubscriptionMessage {
-                                    channel: channel.clone(),
-                                    msg: data.unwrap_or_default(),
-                                })
-                                .await
-                                .is_err()
-                            {
+                        match context.send(&channel, data.unwrap_or_default()).await {
+                            Ok(()) => {}
+                            Err(SendError::Closed) => {
                                 tracing::error!(
                                     client_id = %client_id,
                                     channel = channel,
                                     "Channel was closed!"
                                 );
                             }
-                        } else {
-                            tracing::trace!(
-                                client_id = %client_id,
-                                channel = channel,
-                                "No `{channel}` channel was found for message: `{data:?}`."
-                            );
+                            Err(SendError::ClientWasntFound(_)) => unreachable!(
+                                "LongPollingServiceContext::send shouldn't return ClientWasntFound"
+                            ),
+                            Err(SendError::InvalidChannel) => {
+                                tracing::error!(
+                                    client_id = %client_id,
+                                    channel = channel,
+                                    "Invalid channel: `{channel}`!"
+                                );
+                            }
                         }
 
-                        Message {
-                            id,
-                            channel: Some(channel),
-                            successful: Some(true),
-                            ..Default::default()
-                        }
+                        Message::ok(id, Some(channel))
                     } else {
                         Message::session_unknown(id, Some(channel), None)
                     }

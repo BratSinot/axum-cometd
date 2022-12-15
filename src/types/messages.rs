@@ -82,6 +82,16 @@ pub(crate) struct SubscriptionMessage {
 
 impl Message {
     #[inline(always)]
+    pub(crate) fn ok(id: Option<String>, channel: Option<String>) -> Self {
+        Self {
+            id,
+            channel,
+            successful: Some(true),
+            ..Default::default()
+        }
+    }
+
+    #[inline(always)]
     pub(crate) fn session_unknown(
         id: Option<String>,
         channel: Option<String>,

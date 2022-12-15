@@ -19,11 +19,7 @@ cometd.handshake(function (message: Message) {
         console.log("Got handshake: `", json(message), "`.");
 
         // Subscribe to receive messages from the server.
-        cometd.subscribe('/topic0', function (message: Message) {
-            console.log("Got message: `", json(message), "`.");
-        });
-
-        cometd.subscribe('/topic1', function (message: Message) {
+        cometd.subscribe('/*', function (message: Message) {
             console.log("Got message: `", json(message), "`.");
         });
     }

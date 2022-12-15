@@ -12,6 +12,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Fix subscribing to multiple channels.
 - Fix wrong channel name in client message.
 - Fix return `408 REQUEST_TIMEOUT` instead of advice reconnect.
+- Missing messages for client id. Switch to `tokio::sync::mpsc`.
+  Parallel connection with same `clientId` give error.
 
 ### Add
 

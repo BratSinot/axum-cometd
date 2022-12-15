@@ -28,9 +28,6 @@ pub(crate) async fn handshake(
         let client_id = context.register(headers).await;
 
         Ok(Json([Message {
-            id,
-            channel,
-            successful: Some(true),
             client_id: Some(client_id),
             version: Some("1.0".into()),
             supported_connection_types: Some(vec!["long-polling".into()]),
@@ -38,7 +35,7 @@ pub(crate) async fn handshake(
                 context.consts.timeout_ms,
                 context.consts.interval_ms,
             )),
-            ..Default::default()
+            ..Message::ok(id, channel)
         }]))
     }
 }

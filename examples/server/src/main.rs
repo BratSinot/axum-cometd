@@ -26,7 +26,7 @@ fn timestamp() -> u64 {
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt()
-        .with_env_filter("debug,axum_cometd=debug")
+        .with_env_filter("server=debug,axum_cometd=debug")
         .init();
 
     let context = LongPollingServiceContextBuilder::new()
