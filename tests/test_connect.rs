@@ -155,3 +155,54 @@ async fn test_channel_was_closed() {
     );
     assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
 }
+
+#[tokio::test]
+async fn test_double_connect_same_client_id() {
+    let mut mock_client = build_mock_client();
+    mock_client.handshake().await;
+    mock_client.subscribe(&["/FOO_BAR"]).await;
+
+    let connect = || async {
+        let id = mock_client.next_id();
+        let response = mock_client
+            .send_request(
+                mock_client.connect_endpoint(),
+                json!([{
+                  "id": id,
+                  "channel": "/meta/connect",
+                  "connectionType": "long-polling",
+                  "clientId": mock_client.client_id(),
+                }]),
+            )
+            .await
+            .to_json()
+            .await;
+        (id, response)
+    };
+
+    let ((id0, resp0), (id1, resp1)) = join!(connect(), connect());
+
+    assert_eq!(
+        resp0,
+        json!([{
+            "id": id0,
+            "channel": "/meta/connect",
+            "successful": true,
+            "advice": {
+                "interval": 0,
+                "reconnect": "retry",
+                "timeout": TIMEOUT_MS
+            },
+        }])
+    );
+
+    assert_eq!(
+        resp1,
+        json!([{
+            "id": id1,
+            "channel": "/meta/connect",
+            "successful": false,
+            "error": "Two connection with same client_id.",
+        }])
+    );
+}
