@@ -4,8 +4,7 @@ use crate::{
 };
 use ahash::AHashMap;
 use axum::http::HeaderMap;
-use std::future::Future;
-use std::sync::Arc;
+use std::{future::Future, sync::Arc};
 use tokio::sync::RwLock;
 
 const DEFAULT_TIMEOUT_MS: u64 = 20_000;
