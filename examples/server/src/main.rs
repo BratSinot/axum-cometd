@@ -64,17 +64,17 @@ fn spawn_topic(context: Arc<LongPollingServiceContext>, channel: &'static str) {
         let distribution = Uniform::new(500, 1000);
 
         loop {
-            /*context
-            .send(
-                channel,
-                Data {
+            context
+                .send(
                     channel,
-                    msg: format!("Hello from {channel}"),
-                    timestamp: timestamp(),
-                },
-            )
-            .await
-            .unwrap();*/
+                    Data {
+                        channel,
+                        msg: format!("Hello from {channel}"),
+                        timestamp: timestamp(),
+                    },
+                )
+                .await
+                .unwrap();
 
             tokio::time::sleep(Duration::from_millis(rng.sample(distribution))).await;
         }
