@@ -1,6 +1,6 @@
 use crate::{
     types::{Callback, ClientId},
-    LongPollingServiceContext,
+    ClientIdGen, LongPollingServiceContext,
 };
 use ahash::AHashMap;
 use axum::http::HeaderMap;
@@ -90,8 +90,9 @@ impl LongPollingServiceContextBuilder {
             channel_name_validator: Default::default(),
             consts,
             channels_data: RwLock::new(AHashMap::with_capacity(subscriptions_storage_capacity)),
-            client_id_senders: Arc::new(RwLock::new(AHashMap::with_capacity(
-                client_ids_storage_capacity,
+            client_id_senders: Arc::new(RwLock::new((
+                ClientIdGen::new(),
+                AHashMap::with_capacity(client_ids_storage_capacity),
             ))),
         })
     }

@@ -5,6 +5,26 @@ use std::fmt::{Debug, Display, Formatter};
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq)]
 pub struct ClientId([u32; 5]);
 
+impl ClientId {
+    #[inline]
+    fn rotr(&mut self) {
+        let [a0, a1, a2, a3, a4] = &mut self.0;
+        let (b0, b1, b2, b3, b4) = (*a0 & 0b1, *a1 & 0b1, *a2 & 0b1, *a3 & 0b1, *a4 & 0b1);
+
+        *a0 >>= 1;
+        *a1 >>= 1;
+        *a2 >>= 1;
+        *a3 >>= 1;
+        *a4 >>= 1;
+
+        *a0 |= b4 << 31;
+        *a1 |= b0 << 31;
+        *a2 |= b1 << 31;
+        *a3 |= b2 << 31;
+        *a4 |= b3 << 31;
+    }
+}
+
 impl Display for ClientId {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         for u32_chunk in self.0 {
@@ -58,23 +78,44 @@ impl Serialize for ClientId {
 }
 
 #[derive(Debug)]
-pub(crate) struct ClientIdGen;
+pub(crate) struct ClientIdGen(ClientId);
 
 impl ClientIdGen {
     #[inline(always)]
-    pub(crate) const fn new() -> Self {
-        Self
-    }
-
-    #[inline]
-    pub(crate) fn next(&self) -> ClientId {
+    pub(crate) fn new() -> Self {
         use rand::Rng;
 
         let mut id = [0u32; 5];
         rand::thread_rng().fill(&mut id);
-        // to prevent leading zero
-        id[0] |= 0x10000000;
 
-        ClientId(id)
+        Self(ClientId(id))
+    }
+
+    #[inline]
+    pub(crate) fn next(&mut self) -> ClientId {
+        let ret = self.0;
+        self.0.rotr();
+        ret
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::from_str;
+
+    #[test]
+    fn test_leading_zero() {
+        let mut client_id = ClientId([u32::MAX; 5]);
+        client_id.0[0] &= 0x0FFFFFFF;
+
+        assert_eq!(
+            client_id.to_string(),
+            "0fffffffffffffffffffffffffffffffffffffff"
+        );
+
+        let parsed_client_id =
+            from_str::<ClientId>(r#""0fffffffffffffffffffffffffffffffffffffff""#).unwrap();
+        assert_eq!(parsed_client_id, client_id);
     }
 }

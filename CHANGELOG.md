@@ -8,6 +8,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Fixed
 
+### Add
+
+### Change
+- Use rotr for generating next ClientId.
+
+## [0.6.0]
+
+### Fixed
+
 - Fix subscribing to multiple channels.
 - Fix wrong channel name in client message.
 - Fix return `408 REQUEST_TIMEOUT` instead of advice reconnect.

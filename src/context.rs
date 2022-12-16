@@ -27,7 +27,7 @@ pub struct LongPollingServiceContext {
     pub(crate) channel_name_validator: ChannelNameValidator,
     pub(crate) consts: LongPollingServiceContextConsts,
     pub(crate) channels_data: RwLock<AHashMap<ChannelId, Channel>>,
-    client_id_senders: Arc<RwLock<AHashMap<ClientId, ClientSender>>>,
+    client_id_senders: Arc<RwLock<(ClientIdGen, AHashMap<ClientId, ClientSender>)>>,
 }
 
 #[derive(Debug)]
@@ -124,7 +124,7 @@ impl LongPollingServiceContext {
         self.channel_name_validator
             .validate_send_channel_name(channel, SendError::InvalidChannel)?;
 
-        if let Some(tx) = self.client_id_senders.read().await.get(client_id) {
+        if let Some(tx) = self.client_id_senders.read().await.1.get(client_id) {
             tx.send(SubscriptionMessage {
                 channel: channel.to_string(),
                 msg: json!(msg),
@@ -143,28 +143,28 @@ impl LongPollingServiceContext {
     }
 
     pub(crate) async fn register(self: &Arc<Self>, headers: HeaderMap) -> ClientId {
-        static CLIENT_ID_GEN: ClientIdGen = ClientIdGen::new();
-
+        #[allow(clippy::option_map_unit_fn)]
         let client_id = {
             let mut client_id_channels_write_guard = self.client_id_senders.write().await;
-            loop {
-                let client_id = CLIENT_ID_GEN.next();
 
-                match client_id_channels_write_guard.entry(client_id) {
-                    Entry::Vacant(v) => {
-                        let (tx, rx) = mpsc::channel(self.consts.client_channel_capacity);
-                        v.insert(ClientSender::create(
-                            self.clone(),
-                            client_id,
-                            Duration::from_millis(self.consts.max_interval_ms),
-                            tx,
-                            rx,
-                        ));
-                        break client_id;
-                    }
-                    Entry::Occupied(_) => continue,
-                }
-            }
+            let client_id = client_id_channels_write_guard.0.next();
+            let (tx, rx) = mpsc::channel(self.consts.client_channel_capacity);
+
+            client_id_channels_write_guard
+                .1
+                .insert(
+                    client_id,
+                    ClientSender::create(
+                        self.clone(),
+                        client_id,
+                        Duration::from_millis(self.consts.max_interval_ms),
+                        tx,
+                        rx,
+                    ),
+                )
+                .map(|_| panic!("ClientIdGen::next return already used ClientId!"));
+
+            client_id
         };
 
         self.session_added
@@ -277,6 +277,7 @@ impl LongPollingServiceContext {
             .client_id_senders
             .write()
             .await
+            .1
             .remove(client_id)
             .is_some()
         {
@@ -294,7 +295,11 @@ impl LongPollingServiceContext {
 
     #[inline]
     pub(crate) async fn check_client_id(&self, client_id: &ClientId) -> bool {
-        self.client_id_senders.read().await.contains_key(client_id)
+        self.client_id_senders
+            .read()
+            .await
+            .1
+            .contains_key(client_id)
     }
 
     #[inline]
@@ -302,6 +307,7 @@ impl LongPollingServiceContext {
         self.client_id_senders
             .read()
             .await
+            .1
             .get(client_id)
             .map(ClientSender::subscribe)
     }
