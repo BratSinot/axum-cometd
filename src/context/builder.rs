@@ -1,9 +1,8 @@
 use crate::{
     types::{Callback, ClientId},
-    ClientIdGen, LongPollingServiceContext,
+    CallBackArguments, ClientIdGen, LongPollingServiceContext,
 };
 use ahash::AHashMap;
-use axum::http::HeaderMap;
 use std::{future::Future, sync::Arc};
 use tokio::sync::RwLock;
 
@@ -19,7 +18,7 @@ pub struct LongPollingServiceContextBuilder {
     subscriptions_storage_capacity: usize,
     client_ids_storage_capacity: usize,
     consts: LongPollingServiceContextConsts,
-    session_added: Callback<(Arc<LongPollingServiceContext>, ClientId, HeaderMap)>,
+    session_added: Callback<CallBackArguments>,
     session_removed: Callback<(Arc<LongPollingServiceContext>, ClientId)>,
 }
 
@@ -180,7 +179,7 @@ impl LongPollingServiceContextBuilder {
     #[inline(always)]
     pub fn session_added<F>(self, callback: F) -> Self
     where
-        F: Fn((Arc<LongPollingServiceContext>, ClientId, HeaderMap)) + Send + Sync + 'static,
+        F: Fn(CallBackArguments) + Send + Sync + 'static,
     {
         Self {
             session_added: Callback::new_sync(callback),
@@ -192,7 +191,7 @@ impl LongPollingServiceContextBuilder {
     #[inline(always)]
     pub fn async_session_added<F, Fut>(self, callback: F) -> Self
     where
-        F: Fn((Arc<LongPollingServiceContext>, ClientId, HeaderMap)) -> Fut + Sync + Send + 'static,
+        F: Fn(CallBackArguments) -> Fut + Sync + Send + 'static,
         Fut: Future<Output = ()> + Sync + Send + 'static,
     {
         Self {

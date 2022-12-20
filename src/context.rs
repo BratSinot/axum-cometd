@@ -8,7 +8,7 @@ use crate::{
     messages::SubscriptionMessage,
     types::{Callback, ChannelId, ClientId, ClientIdGen, ClientReceiver, ClientSender},
     utils::{ChannelNameValidator, WildNamesCache},
-    SendError,
+    CallBackArguments, SendError,
 };
 use ahash::{AHashMap, AHashSet};
 use axum::http::HeaderMap;
@@ -20,7 +20,7 @@ use tokio::sync::{mpsc, RwLock};
 /// Context for sending messages to channels.
 #[derive(Debug)]
 pub struct LongPollingServiceContext {
-    session_added: Callback<(Arc<LongPollingServiceContext>, ClientId, HeaderMap)>,
+    session_added: Callback<CallBackArguments>,
     session_removed: Callback<(Arc<LongPollingServiceContext>, ClientId)>,
 
     pub(crate) wildnames_cache: WildNamesCache,
@@ -168,7 +168,11 @@ impl LongPollingServiceContext {
         };
 
         self.session_added
-            .call((self.clone(), client_id, headers))
+            .call(CallBackArguments {
+                context: self.clone(),
+                client_id,
+                headers,
+            })
             .await;
 
         tracing::info!(
