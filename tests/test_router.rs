@@ -1,5 +1,5 @@
 use axum::Router;
-use axum_cometd::{LongPollingServiceContextBuilder, RouterBuilder};
+use axum_cometd::{CallBackArguments, LongPollingServiceContextBuilder, RouterBuilder};
 use serde_json::json;
 use std::{sync::Arc, time::Duration};
 use test_common::*;
@@ -66,7 +66,9 @@ async fn test_callbacks() {
         .subscription_channel_capacity(10)
         .async_session_added({
             let client_id_check = client_id_check.clone();
-            move |(context, client_id, _)| {
+            move |CallBackArguments {
+                      context, client_id, ..
+                  }| {
                 let client_id_check = client_id_check.clone();
                 async move {
                     *client_id_check.lock().await = client_id.to_string();

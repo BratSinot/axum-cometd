@@ -1,5 +1,7 @@
 use axum::{Router, Server};
-use axum_cometd::{LongPollingServiceContext, LongPollingServiceContextBuilder, RouterBuilder};
+use axum_cometd::{
+    CallBackArguments, LongPollingServiceContext, LongPollingServiceContextBuilder, RouterBuilder,
+};
 use rand::{distributions::Uniform, rngs::StdRng, Rng, SeedableRng};
 use std::{
     fmt::Debug,
@@ -36,9 +38,13 @@ async fn main() {
         .client_storage_capacity(10_000)
         .subscription_channel_capacity(500)
         .subscription_storage_capacity(10_000)
-        .async_session_added(|(_context, client_id, headers)| async move {
-            tracing::info!("Got new session {client_id}: `{headers:?}.");
-        })
+        .async_session_added(
+            |CallBackArguments {
+                 client_id, headers, ..
+             }| async move {
+                tracing::info!("Got new session {client_id}: `{headers:?}.");
+            },
+        )
         .async_session_removed(|(_context, client_id)| async move {
             tracing::info!("Removed session {client_id}.");
         })
