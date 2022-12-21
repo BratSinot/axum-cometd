@@ -1,6 +1,7 @@
 use axum::{Router, Server};
 use axum_cometd::{
     LongPollingServiceContext, LongPollingServiceContextBuilder, RouterBuilder, SessionAddedArgs,
+    SessionRemovedArgs,
 };
 use rand::{distributions::Uniform, rngs::StdRng, Rng, SeedableRng};
 use std::{
@@ -45,7 +46,7 @@ async fn main() {
                 tracing::info!("Got new session {client_id}: `{headers:?}.");
             },
         )
-        .async_session_removed(|(_context, client_id)| async move {
+        .async_session_removed(|SessionRemovedArgs { client_id, .. }| async move {
             tracing::info!("Removed session {client_id}.");
         })
         .build();
