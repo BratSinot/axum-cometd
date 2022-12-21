@@ -8,7 +8,7 @@ use crate::{
     messages::SubscriptionMessage,
     types::{Callback, ChannelId, ClientId, ClientIdGen, ClientReceiver, ClientSender},
     utils::{ChannelNameValidator, WildNamesCache},
-    SessionAddedArgs, SendError, SessionRemovedArgs,
+    SendError, SessionAddedArgs, SessionRemovedArgs,
 };
 use ahash::{AHashMap, AHashSet};
 use axum::http::HeaderMap;
@@ -237,7 +237,12 @@ impl LongPollingServiceContext {
             self.remove_client_tx(&client_id),
         );
 
-        self.session_removed.call(SessionRemovedArgs{ context: self.clone(), client_id }).await;
+        self.session_removed
+            .call(SessionRemovedArgs {
+                context: self.clone(),
+                client_id,
+            })
+            .await;
     }
 
     #[inline]

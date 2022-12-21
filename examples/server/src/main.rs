@@ -1,6 +1,6 @@
 use axum::{Router, Server};
 use axum_cometd::{
-    SessionAddedArgs, LongPollingServiceContext, LongPollingServiceContextBuilder, RouterBuilder,
+    LongPollingServiceContext, LongPollingServiceContextBuilder, RouterBuilder, SessionAddedArgs,
 };
 use rand::{distributions::Uniform, rngs::StdRng, Rng, SeedableRng};
 use std::{
