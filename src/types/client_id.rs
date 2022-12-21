@@ -101,6 +101,8 @@ impl ClientIdGen {
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::unwrap_used)]
+
     use super::*;
     use serde_json::from_str;
 
