@@ -12,6 +12,17 @@ pub struct SessionAddedArgs {
     pub headers: HeaderMap,
 }
 
+/// Struct used in subscribe callbacks.
+#[derive(Debug)]
+#[non_exhaustive]
+#[allow(missing_docs)]
+pub struct SubscribeArgs {
+    pub context: Arc<LongPollingServiceContext>,
+    pub client_id: ClientId,
+    pub headers: HeaderMap,
+    pub channels: Vec<String>,
+}
+
 /// Struct used in sessionRemoved callbacks.
 #[derive(Debug)]
 #[non_exhaustive]

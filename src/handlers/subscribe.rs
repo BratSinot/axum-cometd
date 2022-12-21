@@ -1,9 +1,14 @@
 use crate::{error::HandlerResult, messages::Message, LongPollingServiceContext};
-use axum::{extract::State, http::StatusCode, Json};
+use axum::{
+    extract::State,
+    http::{HeaderMap, StatusCode},
+    Json,
+};
 use std::sync::Arc;
 
 pub(crate) async fn subscribe(
     State(context): State<Arc<LongPollingServiceContext>>,
+    headers: HeaderMap,
     Json([message]): Json<[Message; 1]>,
 ) -> HandlerResult<Json<[Message; 1]>> {
     tracing::info!("Got subscribe request: `{message:?}`.");
@@ -36,7 +41,7 @@ pub(crate) async fn subscribe(
         subscription.iter().try_for_each(validate)?;
 
         context
-            .subscribe(client_id, &subscription)
+            .subscribe(client_id, headers, subscription.clone())
             .await
             .map_err(|_| Message::session_unknown(id.clone(), channel.clone(), None))?;
 
