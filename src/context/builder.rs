@@ -30,9 +30,9 @@ impl Default for LongPollingServiceContextBuilder {
             subscriptions_storage_capacity: DEFAULT_STORAGE_CAPACITY,
             client_ids_storage_capacity: DEFAULT_STORAGE_CAPACITY,
             consts: Default::default(),
-            session_added: Default::default(),
-            subscribe_added: Default::default(),
-            session_removed: Default::default(),
+            session_added: Callback::Empty,
+            subscribe_added: Callback::Empty,
+            session_removed: Callback::Empty,
         }
     }
 }
