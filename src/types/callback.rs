@@ -6,16 +6,12 @@ use std::{
 
 type BoxedFuture = Pin<Box<dyn Future<Output = ()> + Send + Sync + 'static>>;
 
+#[derive(Default)]
 pub(crate) enum Callback<T> {
+    #[default]
     Empty,
     Sync(Box<dyn Fn(T) + Send + Sync + 'static>),
     Async(Box<dyn Fn(T) -> BoxedFuture + Send + Sync + 'static>),
-}
-
-impl<T> Default for Callback<T> {
-    fn default() -> Self {
-        Self::Empty
-    }
 }
 
 impl<T> Debug for Callback<T> {

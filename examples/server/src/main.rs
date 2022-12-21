@@ -1,6 +1,6 @@
 use axum::{Router, Server};
 use axum_cometd::{
-    CallBackArguments, LongPollingServiceContext, LongPollingServiceContextBuilder, RouterBuilder,
+    SessionAddedArgs, LongPollingServiceContext, LongPollingServiceContextBuilder, RouterBuilder,
 };
 use rand::{distributions::Uniform, rngs::StdRng, Rng, SeedableRng};
 use std::{
@@ -39,7 +39,7 @@ async fn main() {
         .subscription_channel_capacity(500)
         .subscription_storage_capacity(10_000)
         .async_session_added(
-            |CallBackArguments {
+            |SessionAddedArgs {
                  client_id, headers, ..
              }| async move {
                 tracing::info!("Got new session {client_id}: `{headers:?}.");
