@@ -8,7 +8,7 @@ use crate::{
     messages::SubscriptionMessage,
     types::{Callback, ChannelId, ClientId, ClientIdGen, ClientReceiver, ClientSender},
     utils::{ChannelNameValidator, WildNamesCache},
-    SendError, SessionAddedArgs, SessionRemovedArgs,
+    SendError, SessionAddedArgs, SessionRemovedArgs, SubscribeArgs,
 };
 use ahash::{AHashMap, AHashSet};
 use axum::http::HeaderMap;
@@ -21,6 +21,7 @@ use tokio::sync::{mpsc, RwLock};
 #[derive(Debug)]
 pub struct LongPollingServiceContext {
     session_added: Callback<SessionAddedArgs>,
+    subscribe_added: Callback<SubscribeArgs>,
     session_removed: Callback<SessionRemovedArgs>,
 
     pub(crate) wildnames_cache: WildNamesCache,
@@ -186,7 +187,8 @@ impl LongPollingServiceContext {
     pub(crate) async fn subscribe(
         self: &Arc<Self>,
         client_id: ClientId,
-        channels: &[String],
+        headers: HeaderMap,
+        channels: Vec<String>,
     ) -> Result<(), ClientId> {
         if !self.check_client_id(&client_id).await {
             tracing::error!(
@@ -221,9 +223,18 @@ impl LongPollingServiceContext {
 
         tracing::info!(
             client_id = %client_id,
-            channels = debug(channels),
+            channels = debug(&channels),
             "Client with clientId `{client_id}` subscribe on `{channels:?}` channels."
         );
+
+        self.subscribe_added
+            .call(SubscribeArgs {
+                context: self.clone(),
+                client_id,
+                headers,
+                channels,
+            })
+            .await;
 
         Ok(())
     }

@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Add
 
+- Add subscribeAdded callback.
+
 ### Change
 
 - Replace tuple by struct in callbacks.

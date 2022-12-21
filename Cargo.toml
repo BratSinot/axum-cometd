@@ -1,6 +1,6 @@
 [package]
 name = "axum-cometd"
-version = "0.7.0-beta.2"
+version = "0.7.0-beta.3"
 edition = "2021"
 license = "Apache-2.0"
 repository = "https://github.com/BratSinot/axum-cometd"

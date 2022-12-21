@@ -1,5 +1,6 @@
 use crate::{
     types::Callback, ClientIdGen, LongPollingServiceContext, SessionAddedArgs, SessionRemovedArgs,
+    SubscribeArgs,
 };
 use ahash::AHashMap;
 use std::{future::Future, sync::Arc};
@@ -18,6 +19,7 @@ pub struct LongPollingServiceContextBuilder {
     client_ids_storage_capacity: usize,
     consts: LongPollingServiceContextConsts,
     session_added: Callback<SessionAddedArgs>,
+    subscribe_added: Callback<SubscribeArgs>,
     session_removed: Callback<SessionRemovedArgs>,
 }
 
@@ -29,6 +31,7 @@ impl Default for LongPollingServiceContextBuilder {
             client_ids_storage_capacity: DEFAULT_STORAGE_CAPACITY,
             consts: Default::default(),
             session_added: Default::default(),
+            subscribe_added: Default::default(),
             session_removed: Default::default(),
         }
     }
@@ -78,11 +81,13 @@ impl LongPollingServiceContextBuilder {
             client_ids_storage_capacity,
             consts,
             session_added,
+            subscribe_added,
             session_removed,
         } = self;
 
         Arc::new(LongPollingServiceContext {
             session_added,
+            subscribe_added,
             session_removed,
             wildnames_cache: Default::default(),
             channel_name_validator: Default::default(),
@@ -195,6 +200,31 @@ impl LongPollingServiceContextBuilder {
     {
         Self {
             session_added: Callback::new_async(callback),
+            ..self
+        }
+    }
+
+    /// Set sync callback on new subscribe creation.
+    #[inline(always)]
+    pub fn subscribe_added<F>(self, callback: F) -> Self
+    where
+        F: Fn(SubscribeArgs) + Send + Sync + 'static,
+    {
+        Self {
+            subscribe_added: Callback::new_sync(callback),
+            ..self
+        }
+    }
+
+    /// Set async callback on new subscribe creation.
+    #[inline(always)]
+    pub fn async_subscribe_added<F, Fut>(self, callback: F) -> Self
+    where
+        F: Fn(SubscribeArgs) -> Fut + Sync + Send + 'static,
+        Fut: Future<Output = ()> + Sync + Send + 'static,
+    {
+        Self {
+            subscribe_added: Callback::new_async(callback),
             ..self
         }
     }
