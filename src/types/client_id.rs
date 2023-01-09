@@ -2,7 +2,7 @@ use serde::{de::Unexpected, Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt::{Debug, Display, Formatter};
 
 /// CometD ClientId.
-#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq)]
+#[derive(Clone, Copy, Hash, Eq, PartialEq)]
 pub struct ClientId([u32; 5]);
 
 impl ClientId {
@@ -22,6 +22,12 @@ impl ClientId {
         *a2 |= b1 << 31;
         *a3 |= b2 << 31;
         *a4 |= b3 << 31;
+    }
+}
+
+impl Debug for ClientId {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        Display::fmt(self, f)
     }
 }
 
