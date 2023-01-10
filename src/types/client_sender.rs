@@ -10,11 +10,10 @@ use tokio::sync::{
     mpsc::{error::SendError, Receiver, Sender},
     Mutex, Notify,
 };
-use tokio_util::sync::CancellationToken;
 
 #[derive(Debug)]
 pub(crate) struct ClientSender {
-    stop_signal: CancellationToken,
+    stop_signal: Arc<Notify>,
     start_timeout: Arc<Notify>,
     cancel_timeout: Arc<Notify>,
     tx: Sender<SubscriptionMessage>,
@@ -30,7 +29,7 @@ impl ClientSender {
         tx: Sender<SubscriptionMessage>,
         rx: Receiver<SubscriptionMessage>,
     ) -> Self {
-        let stop_signal = CancellationToken::new();
+        let stop_signal = Arc::new(Notify::new());
         let start_timeout = Arc::new(Notify::new());
         let cancel_timeout = Arc::new(Notify::new());
         let rx = Arc::new(Mutex::new(rx));
@@ -76,6 +75,6 @@ impl ClientSender {
 
 impl Drop for ClientSender {
     fn drop(&mut self) {
-        self.stop_signal.cancel();
+        self.stop_signal.notify_one();
     }
 }
