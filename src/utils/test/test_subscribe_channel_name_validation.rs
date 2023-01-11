@@ -7,10 +7,7 @@ fn test_subscribe_channel_name_validator() {
 
     for (channel, result) in TEST_SUBSCRIBE_CHANNEL_NAMES {
         assert_eq!(
-            validator
-                .validate_subscribe_channel_name(channel, ())
-                .ok()
-                .is_some(),
+            validator.validate_subscribe_channel_name(channel),
             result,
             "{channel}"
         );

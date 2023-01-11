@@ -35,7 +35,7 @@ mod tests {
     #[test]
     fn test_count_wildnames() {
         for (name, result) in TEST_WILDNAMES.iter() {
-            if let Ok(result) = result {
+            if let Some(result) = result {
                 if !name.ends_with("/*") && !name.ends_with("/**") {
                     assert_eq!(count_wildnames(name), result.len(), "{name}");
                 }

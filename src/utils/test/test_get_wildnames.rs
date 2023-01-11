@@ -8,8 +8,8 @@ fn test_get_wildnames() {
     for (channel, result) in TEST_WILDNAMES.iter() {
         assert_eq!(
             validator
-                .validate_subscribe_channel_name(channel, ())
-                .map(|()| get_wild_names(channel)),
+                .validate_subscribe_channel_name(channel)
+                .then(|| get_wild_names(channel)),
             *result,
             "{channel}"
         );

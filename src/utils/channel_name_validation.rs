@@ -1,8 +1,8 @@
 use regex::Regex;
 
-const VALID_SUBSCRIBE_CHANNEL_NAME_REGEX: &str =
-    r#"^(?:/[a-zA-Z0-9\-_!~()$@]+)*(?:(?:/\*\*)|(?:/\*)|/)?$"#;
-const VALID_SEND_CHANNEL_NAME_REGEX: &str = r#"^(?:/[a-zA-Z0-9\-_!~()$@]+)+(?:/)?$"#;
+// [:word:] -- [a-zA-Z0-9_]
+const VALID_SUBSCRIBE_CHANNEL_NAME_REGEX: &str = r#"^(?:/[[:word:]\-!~()$@]+)*(?:/\*\*|/\*|/)?$"#;
+const VALID_SEND_CHANNEL_NAME_REGEX: &str = r#"^(?:/[[:word:]\-!~()$@]+)+(?:/)?$"#;
 
 #[derive(Debug)]
 pub(crate) struct ChannelNameValidator {
@@ -25,26 +25,20 @@ impl Default for ChannelNameValidator {
 
 impl ChannelNameValidator {
     #[inline(always)]
-    pub(crate) fn validate_subscribe_channel_name<E>(&self, name: &str, error: E) -> Result<(), E> {
+    pub(crate) fn validate_subscribe_channel_name(&self, name: &str) -> bool {
         if name.is_empty() {
-            Err(error)
+            false
         } else {
-            self.subscribe_channel_name_regex
-                .is_match(name)
-                .then_some(())
-                .ok_or(error)
+            self.subscribe_channel_name_regex.is_match(name)
         }
     }
 
     #[inline(always)]
-    pub(crate) fn validate_send_channel_name<E>(&self, name: &str, error: E) -> Result<(), E> {
+    pub(crate) fn validate_send_channel_name(&self, name: &str) -> bool {
         if name.is_empty() {
-            Err(error)
+            false
         } else {
-            self.send_channel_name_regex
-                .is_match(name)
-                .then_some(())
-                .ok_or(error)
+            self.send_channel_name_regex.is_match(name)
         }
     }
 }

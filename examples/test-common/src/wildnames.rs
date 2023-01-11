@@ -1,67 +1,67 @@
 use once_cell::sync::Lazy;
 
 #[allow(clippy::type_complexity)]
-pub static TEST_WILDNAMES: Lazy<[(&str, Result<Vec<String>, ()>); 42]> = Lazy::new(|| {
+pub static TEST_WILDNAMES: Lazy<[(&str, Option<Vec<String>>); 42]> = Lazy::new(|| {
     [
         // 0 nest level
-        (r#""#, Err(())),
-        (r#"/*"#, Ok(vec![])),
-        (r#"/**"#, Ok(vec![])),
+        (r#""#, None),
+        (r#"/*"#, Some(vec![])),
+        (r#"/**"#, Some(vec![])),
         // 1 nest level
-        ("/first1", Ok(vec!["/*".to_owned(), "/**".to_owned()])),
-        ("/first1*", Err(())),
-        ("/first1**", Err(())),
+        ("/first1", Some(vec!["/*".to_owned(), "/**".to_owned()])),
+        ("/first1*", None),
+        ("/first1**", None),
         (
             "/first1/",
-            Ok(vec![
+            Some(vec![
                 "/first1/*".to_owned(),
                 "/first1/**".to_owned(),
                 "/**".to_owned(),
             ]),
         ),
-        ("/first1/*", Ok(vec![])),
-        ("/first1/ *", Err(())),
-        ("/first1/**", Ok(vec![])),
-        ("/first1/ **", Err(())),
+        ("/first1/*", Some(vec![])),
+        ("/first1/ *", None),
+        ("/first1/**", Some(vec![])),
+        ("/first1/ **", None),
         // 2 nest levels
         (
             "/first1/second2",
-            Ok(vec![
+            Some(vec![
                 "/first1/*".to_owned(),
                 "/first1/**".to_owned(),
                 "/**".to_owned(),
             ]),
         ),
-        ("/first1/second2*", Err(())),
-        ("/first1/second2**", Err(())),
+        ("/first1/second2*", None),
+        ("/first1/second2**", None),
         (
             "/first1/second2/",
-            Ok(vec![
+            Some(vec![
                 "/first1/second2/*".to_owned(),
                 "/first1/second2/**".to_owned(),
                 "/first1/**".to_owned(),
                 "/**".to_owned(),
             ]),
         ),
-        ("/first1/second2/*", Ok(vec![])),
-        ("/first1/second2/ *", Err(())),
-        ("/first1/second2/**", Ok(vec![])),
-        ("/first1/second2/ **", Err(())),
+        ("/first1/second2/*", Some(vec![])),
+        ("/first1/second2/ *", None),
+        ("/first1/second2/**", Some(vec![])),
+        ("/first1/second2/ **", None),
         // 3 nest levels
         (
             "/first1/second2/third3",
-            Ok(vec![
+            Some(vec![
                 "/first1/second2/*".to_owned(),
                 "/first1/second2/**".to_owned(),
                 "/first1/**".to_owned(),
                 "/**".to_owned(),
             ]),
         ),
-        ("/first1/second2/third3*", Err(())),
-        ("/first1/second2/third3**", Err(())),
+        ("/first1/second2/third3*", None),
+        ("/first1/second2/third3**", None),
         (
             "/first1/second2/third3/",
-            Ok(vec![
+            Some(vec![
                 "/first1/second2/third3/*".to_owned(),
                 "/first1/second2/third3/**".to_owned(),
                 "/first1/second2/**".to_owned(),
@@ -69,14 +69,14 @@ pub static TEST_WILDNAMES: Lazy<[(&str, Result<Vec<String>, ()>); 42]> = Lazy::n
                 "/**".to_owned(),
             ]),
         ),
-        ("/first1/second2/third3/*", Ok(vec![])),
-        ("/first1/second2/third3/ *", Err(())),
-        ("/first1/second2/third3/**", Ok(vec![])),
-        ("/first1/second2/third3/ **", Err(())),
+        ("/first1/second2/third3/*", Some(vec![])),
+        ("/first1/second2/third3/ *", None),
+        ("/first1/second2/third3/**", Some(vec![])),
+        ("/first1/second2/third3/ **", None),
         // 4 nest levels + special chars
         (
             "/first1/second2/third3/-_!~()$@",
-            Ok(vec![
+            Some(vec![
                 "/first1/second2/third3/*".to_owned(),
                 "/first1/second2/third3/**".to_owned(),
                 "/first1/second2/**".to_owned(),
@@ -84,11 +84,11 @@ pub static TEST_WILDNAMES: Lazy<[(&str, Result<Vec<String>, ()>); 42]> = Lazy::n
                 "/**".to_owned(),
             ]),
         ),
-        ("/first1/second2/third3/-_!~()$@*", Err(())),
-        ("/first1/second2/third3/-_!~()$@**", Err(())),
+        ("/first1/second2/third3/-_!~()$@*", None),
+        ("/first1/second2/third3/-_!~()$@**", None),
         (
             "/first1/second2/third3/-_!~()$@/",
-            Ok(vec![
+            Some(vec![
                 "/first1/second2/third3/-_!~()$@/*".to_owned(),
                 "/first1/second2/third3/-_!~()$@/**".to_owned(),
                 "/first1/second2/third3/**".to_owned(),
@@ -97,17 +97,17 @@ pub static TEST_WILDNAMES: Lazy<[(&str, Result<Vec<String>, ()>); 42]> = Lazy::n
                 "/**".to_owned(),
             ]),
         ),
-        ("/first1/second2/third3/-_!~()$@/*", Ok(vec![])),
-        ("/first1/second2/third3/-_!~()$@/ *", Err(())),
-        ("/first1/second2/third3/-_!~()$@/**", Ok(vec![])),
-        ("/first1/second2/third3/-_!~()$@/ **", Err(())),
+        ("/first1/second2/third3/-_!~()$@/*", Some(vec![])),
+        ("/first1/second2/third3/-_!~()$@/ *", None),
+        ("/first1/second2/third3/-_!~()$@/**", Some(vec![])),
+        ("/first1/second2/third3/-_!~()$@/ **", None),
         // use wild characters in the middle
-        ("/first1/*/third3", Err(())),
-        ("/first1/*/third3/", Err(())),
-        ("/first1/*/third3/*", Err(())),
-        ("/first1/*/third3/**", Err(())),
-        ("/first1/second2/**/", Err(())),
-        ("/first1/second2/**/*", Err(())),
-        ("/first1/second2/**/**", Err(())),
+        ("/first1/*/third3", None),
+        ("/first1/*/third3/", None),
+        ("/first1/*/third3/*", None),
+        ("/first1/*/third3/**", None),
+        ("/first1/second2/**/", None),
+        ("/first1/second2/**/*", None),
+        ("/first1/second2/**/**", None),
     ]
 });
