@@ -33,12 +33,13 @@ pub(crate) async fn subscribe(
         let client_id =
             client_id.ok_or_else(|| Message::session_unknown(id.clone(), channel.clone(), None))?;
 
-        let validate = |name: &String| {
+        subscription.iter().try_for_each(|name| {
             context
                 .channel_name_validator
-                .validate_subscribe_channel_name(name, StatusCode::BAD_REQUEST)
-        };
-        subscription.iter().try_for_each(validate)?;
+                .validate_subscribe_channel_name(name)
+                .then_some(())
+                .ok_or(StatusCode::BAD_REQUEST)
+        })?;
 
         context
             .subscribe(client_id, headers, subscription.clone())
