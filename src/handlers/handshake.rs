@@ -1,16 +1,19 @@
 use crate::{
     error::HandlerResult,
     messages::{Advice, Message},
+    types::{CookieId, BAYEUX_BROWSER},
     LongPollingServiceContext,
 };
 use axum::{extract::State, http::HeaderMap, Json};
+use axum_extra::extract::cookie::{Cookie, CookieJar};
 use std::sync::Arc;
 
 pub(crate) async fn handshake(
     State(context): State<Arc<LongPollingServiceContext>>,
     headers: HeaderMap,
+    mut jar: CookieJar,
     Json([message]): Json<[Message; 1]>,
-) -> HandlerResult<Json<[Message; 1]>> {
+) -> HandlerResult<(CookieJar, Json<[Message; 1]>)> {
     tracing::info!("Got handshake request: `{message:?}`.");
 
     let Message {
@@ -25,17 +28,33 @@ pub(crate) async fn handshake(
     } else if minimum_version.as_deref() != Some("1.0") {
         Err(Message::wrong_minimum_version(id, minimum_version).into())
     } else {
-        let client_id = context.register(headers).await;
+        let cookie_id = if let Some(cookie_id) = jar
+            .get(BAYEUX_BROWSER)
+            .map(Cookie::value)
+            .map(CookieId::parse)
+            .and_then(Result::ok)
+        {
+            cookie_id
+        } else {
+            let cookie_id = CookieId::gen();
+            jar = jar.add(Cookie::new(BAYEUX_BROWSER, cookie_id.to_string()));
+            cookie_id
+        };
 
-        Ok(Json([Message {
-            client_id: Some(client_id),
-            version: Some("1.0".into()),
-            supported_connection_types: Some(vec!["long-polling".into()]),
-            advice: Some(Advice::retry(
-                context.consts.timeout_ms,
-                context.consts.interval_ms,
-            )),
-            ..Message::ok(id, channel)
-        }]))
+        let client_id = context.register(headers, cookie_id).await;
+
+        Ok((
+            jar,
+            Json([Message {
+                client_id: Some(client_id),
+                version: Some("1.0".into()),
+                supported_connection_types: Some(vec!["long-polling".into()]),
+                advice: Some(Advice::retry(
+                    context.consts.timeout_ms,
+                    context.consts.interval_ms,
+                )),
+                ..Message::ok(id, channel)
+            }]),
+        ))
     }
 }

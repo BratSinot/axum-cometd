@@ -22,4 +22,4 @@ mod handlers;
 mod types;
 mod utils;
 
-pub use {context::*, error::*, types::*};
+pub use {context::*, types::error::*, types::*};

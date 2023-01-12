@@ -3,10 +3,12 @@ use crate::{
     LongPollingServiceContext, SendError,
 };
 use axum::http::StatusCode;
+use axum_extra::extract::CookieJar;
 
 #[inline]
 pub(super) async fn publish_handle(
     context: &LongPollingServiceContext,
+    jar: CookieJar,
     mut messages: Vec<Message>,
 ) -> Result<Vec<Message>, StatusCode> {
     if messages.iter().any(|message| {
@@ -31,7 +33,7 @@ pub(super) async fn publish_handle(
                 (None, _) => Message::channel_missing(id),
                 (channel, None) => Message::session_unknown(id, channel, Some(Advice::handshake())),
                 (Some(channel), Some(client_id)) => {
-                    if context.check_client_id(&client_id).await {
+                    if context.check_client(&jar, &client_id).await.is_some() {
                         match context.send(&channel, data.unwrap_or_default()).await {
                             Ok(()) => {}
                             Err(SendError::Closed) => {

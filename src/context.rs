@@ -6,12 +6,15 @@ pub use {build_router::*, builder::*};
 
 use crate::{
     messages::SubscriptionMessage,
-    types::{Callback, ChannelId, ClientId, ClientIdGen, ClientReceiver, ClientSender},
+    types::{
+        Callback, ChannelId, ClientId, ClientReceiver, ClientSender, CookieId, BAYEUX_BROWSER,
+    },
     utils::{ChannelNameValidator, WildNamesCache},
     SendError, SessionAddedArgs, SessionRemovedArgs, SubscribeArgs,
 };
 use ahash::{AHashMap, AHashSet};
 use axum::http::HeaderMap;
+use axum_extra::extract::{cookie::Cookie, CookieJar};
 use serde::Serialize;
 use serde_json::json;
 use std::{collections::hash_map::Entry, fmt::Debug, ops::Deref, sync::Arc, time::Duration};
@@ -28,7 +31,7 @@ pub struct LongPollingServiceContext {
     pub(crate) channel_name_validator: ChannelNameValidator,
     pub(crate) consts: LongPollingServiceContextConsts,
     pub(crate) channels_data: RwLock<AHashMap<ChannelId, Channel>>,
-    client_id_senders: Arc<RwLock<(ClientIdGen, AHashMap<ClientId, ClientSender>)>>,
+    client_id_senders: Arc<RwLock<AHashMap<ClientId, ClientSender>>>,
 }
 
 #[derive(Debug)]
@@ -129,7 +132,7 @@ impl LongPollingServiceContext {
             .then_some(())
             .ok_or(SendError::InvalidChannel)?;
 
-        if let Some(tx) = self.client_id_senders.read().await.1.get(client_id) {
+        if let Some(tx) = self.client_id_senders.read().await.get(client_id) {
             tx.send(SubscriptionMessage {
                 channel: channel.to_string(),
                 msg: json!(msg),
@@ -147,27 +150,31 @@ impl LongPollingServiceContext {
         }
     }
 
-    pub(crate) async fn register(self: &Arc<Self>, headers: HeaderMap) -> ClientId {
+    pub(crate) async fn register(
+        self: &Arc<Self>,
+        headers: HeaderMap,
+        cookie_id: CookieId,
+    ) -> ClientId {
         #[allow(clippy::option_map_unit_fn)]
         let client_id = {
             let mut client_id_channels_write_guard = self.client_id_senders.write().await;
 
-            let client_id = client_id_channels_write_guard.0.next();
+            let client_id = ClientId::gen();
             let (tx, rx) = mpsc::channel(self.consts.client_channel_capacity);
 
             client_id_channels_write_guard
-                .1
                 .insert(
                     client_id,
                     ClientSender::create(
                         self.clone(),
+                        cookie_id,
                         client_id,
                         Duration::from_millis(self.consts.max_interval_ms),
                         tx,
                         rx,
                     ),
                 )
-                .map(|_| panic!("ClientIdGen::next return already used ClientId!"));
+                .map(|_| panic!("ClientId::gen() return already used ClientId!"));
 
             client_id
         };
@@ -193,15 +200,7 @@ impl LongPollingServiceContext {
         client_id: ClientId,
         headers: HeaderMap,
         channels: Vec<String>,
-    ) -> Result<(), ClientId> {
-        if !self.check_client_id(&client_id).await {
-            tracing::error!(
-                client_id = %client_id,
-                "Non-existing client with clientId `{client_id}`."
-            );
-            return Err(client_id);
-        }
-
+    ) {
         let mut channels_data_write_guard = self.channels_data.write().await;
         for channel in channels.iter() {
             match channels_data_write_guard.entry(channel.to_string()) {
@@ -239,8 +238,6 @@ impl LongPollingServiceContext {
                 channels,
             })
             .await;
-
-        Ok(())
     }
 
     // TODO: Spawn task and send unsubscribe command through channel?
@@ -301,7 +298,6 @@ impl LongPollingServiceContext {
             .client_id_senders
             .write()
             .await
-            .1
             .remove(client_id)
             .is_some()
         {
@@ -318,12 +314,20 @@ impl LongPollingServiceContext {
     }
 
     #[inline]
-    pub(crate) async fn check_client_id(&self, client_id: &ClientId) -> bool {
+    pub(crate) async fn check_client(&self, jar: &CookieJar, client_id: &ClientId) -> Option<()> {
+        let cookie_id = jar
+            .get(BAYEUX_BROWSER)
+            .map(Cookie::value)
+            .map(CookieId::parse)
+            .and_then(Result::ok)?;
+
         self.client_id_senders
             .read()
             .await
-            .1
-            .contains_key(client_id)
+            .get(client_id)
+            .map(ClientSender::cookie_id)
+            .eq(&Some(cookie_id))
+            .then_some(())
     }
 
     #[inline]
@@ -331,7 +335,6 @@ impl LongPollingServiceContext {
         self.client_id_senders
             .read()
             .await
-            .1
             .get(client_id)
             .map(ClientSender::subscribe)
     }

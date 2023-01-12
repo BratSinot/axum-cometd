@@ -20,6 +20,7 @@ members = [
 [dependencies]
 ahash = "0.8.*"
 axum = { version = "0.6.*", default-features = false, features = ["json"] }
+axum-extra = { version = "0.4.*", features = ["cookie"] }
 rand = "0.8.*"
 regex = { version = "1.7.*", default-features = false, features = ["std", "perf"] }
 serde = { version = "1.0.*", features = ["derive"] }
