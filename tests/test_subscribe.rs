@@ -62,7 +62,8 @@ async fn test_wrong_channel() {
 
 #[tokio::test]
 async fn test_subscription_missing() {
-    let mock_client = build_mock_client();
+    let mut mock_client = build_mock_client();
+    mock_client.handshake().await;
 
     let id = mock_client.next_id();
     let response = mock_client
@@ -70,7 +71,8 @@ async fn test_subscription_missing() {
             mock_client.subscribe_endpoint(),
             json!([{
                 "id": id,
-                "channel": "/meta/subscribe"
+                "channel": "/meta/subscribe",
+                "clientId": mock_client.client_id(),
             }]),
         )
         .await
@@ -93,6 +95,7 @@ async fn test_subscription_missing() {
                 "id": id,
                 "channel": "/meta/subscribe",
                 "subscription": [],
+                "clientId": mock_client.client_id(),
             }]),
         )
         .await

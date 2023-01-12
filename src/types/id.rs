@@ -1,4 +1,5 @@
-use serde::{de::Unexpected, Deserialize, Deserializer, Serialize, Serializer};
+use crate::error::ParseError;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::{
     fmt::{Debug, Display, Formatter},
     time::{SystemTime, UNIX_EPOCH},
@@ -25,6 +26,32 @@ impl Id {
 
         Self(id)
     }
+
+    #[inline]
+    pub(crate) fn parse(str: &str) -> Result<Self, ParseError<'_>> {
+        match str.len() {
+            40 => {
+                let p0 = &str[0..8];
+                let p1 = &str[8..16];
+                let p2 = &str[16..24];
+                let p3 = &str[24..32];
+                let p4 = &str[32..40];
+
+                fn hex_str_to_u32(s: &str) -> Result<u32, ParseError<'_>> {
+                    u32::from_str_radix(s, 16).map_err(|_| ParseError::InvalidValue(s))
+                }
+
+                Ok(Self([
+                    hex_str_to_u32(p0)?,
+                    hex_str_to_u32(p1)?,
+                    hex_str_to_u32(p2)?,
+                    hex_str_to_u32(p3)?,
+                    hex_str_to_u32(p4)?,
+                ]))
+            }
+            len => Err(ParseError::InvalidLength(len)),
+        }
+    }
 }
 
 impl Debug for Id {
@@ -47,32 +74,9 @@ impl<'de> Deserialize<'de> for Id {
     where
         D: Deserializer<'de>,
     {
-        use serde::de::Error;
         let str = Box::<str>::deserialize(deserializer)?;
-        match str.len() {
-            40 => {
-                let p0 = &str[0..8];
-                let p1 = &str[8..16];
-                let p2 = &str[16..24];
-                let p3 = &str[24..32];
-                let p4 = &str[32..40];
 
-                fn hex_str_to_u32<E: Error>(s: &str) -> Result<u32, E> {
-                    u32::from_str_radix(s, 16).map_err(|_| {
-                        Error::invalid_value(Unexpected::Str(s), &"valid u32 hex string")
-                    })
-                }
-
-                Ok(Self([
-                    hex_str_to_u32(p0)?,
-                    hex_str_to_u32(p1)?,
-                    hex_str_to_u32(p2)?,
-                    hex_str_to_u32(p3)?,
-                    hex_str_to_u32(p4)?,
-                ]))
-            }
-            len => Err(Error::invalid_length(len, &"40")),
-        }
+        Self::parse(&str).map_err(ParseError::into_de_error)
     }
 }
 

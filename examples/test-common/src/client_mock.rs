@@ -1,7 +1,10 @@
-use crate::ResponseExt;
+use crate::{ResponseExt, TEST_CLIENT_ID};
 use ahash::AHashMap;
 use axum::{
-    http::{header::CONTENT_TYPE, Request, StatusCode},
+    http::{
+        header::{CONTENT_TYPE, COOKIE},
+        Request, StatusCode,
+    },
     response::Response,
     Router,
 };
@@ -179,14 +182,14 @@ impl ClientMock {
         }
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn next_id(&self) -> String {
         let id = self.id.fetch_add(1, Ordering::SeqCst);
         self.last_id.store(id, Ordering::SeqCst);
         id.to_string()
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn last_id(&self) -> String {
         self.last_id.load(Ordering::SeqCst).to_string()
     }
@@ -207,6 +210,7 @@ fn build_req(uri: &str, body: JsonValue) -> Request<Body> {
         .uri(uri)
         .method("POST")
         .header(CONTENT_TYPE, "application/json")
+        .header(COOKIE, format!("BAYEUX_BROWSER={TEST_CLIENT_ID};"))
         .body(Body::from(body.to_string()))
         .unwrap()
 }

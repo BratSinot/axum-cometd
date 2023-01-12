@@ -1,7 +1,7 @@
-use crate::messages::SubscriptionMessage;
+use crate::{messages::SubscriptionMessage, types::Signals};
 use std::{fmt::Debug, sync::Arc, time::Duration};
 use tokio::{
-    sync::{mpsc::Receiver, Mutex, Notify, TryLockError},
+    sync::{mpsc::Receiver, Mutex, TryLockError},
     time,
 };
 
@@ -16,17 +16,17 @@ pub(crate) enum ClientReceiverError {
 // TODO: Unite Arc's.
 #[derive(Debug)]
 pub(crate) struct ClientReceiver {
-    start_timeout: Arc<Notify>,
+    signals: Arc<Signals>,
     rx: Arc<Mutex<Receiver<SubscriptionMessage>>>,
 }
 
 impl ClientReceiver {
     #[inline(always)]
     pub(crate) fn new(
-        start_timeout: Arc<Notify>,
+        signals: Arc<Signals>,
         rx: Arc<Mutex<Receiver<SubscriptionMessage>>>,
     ) -> Self {
-        Self { start_timeout, rx }
+        Self { signals, rx }
     }
 
     #[inline]
@@ -42,6 +42,6 @@ impl ClientReceiver {
 
 impl Drop for ClientReceiver {
     fn drop(&mut self) {
-        self.start_timeout.notify_waiters();
+        self.signals.start_timeout.notify_waiters();
     }
 }

@@ -6,12 +6,15 @@ pub use {build_router::*, builder::*};
 
 use crate::{
     messages::SubscriptionMessage,
-    types::{Callback, ChannelId, ClientId, ClientReceiver, ClientSender},
+    types::{
+        Callback, ChannelId, ClientId, ClientReceiver, ClientSender, CookieId, BAYEUX_BROWSER,
+    },
     utils::{ChannelNameValidator, WildNamesCache},
     SendError, SessionAddedArgs, SessionRemovedArgs, SubscribeArgs,
 };
 use ahash::{AHashMap, AHashSet};
 use axum::http::HeaderMap;
+use axum_extra::extract::{cookie::Cookie, CookieJar};
 use serde::Serialize;
 use serde_json::json;
 use std::{collections::hash_map::Entry, fmt::Debug, ops::Deref, sync::Arc, time::Duration};
@@ -147,7 +150,11 @@ impl LongPollingServiceContext {
         }
     }
 
-    pub(crate) async fn register(self: &Arc<Self>, headers: HeaderMap) -> ClientId {
+    pub(crate) async fn register(
+        self: &Arc<Self>,
+        headers: HeaderMap,
+        cookie_id: CookieId,
+    ) -> ClientId {
         #[allow(clippy::option_map_unit_fn)]
         let client_id = {
             let mut client_id_channels_write_guard = self.client_id_senders.write().await;
@@ -160,6 +167,7 @@ impl LongPollingServiceContext {
                     client_id,
                     ClientSender::create(
                         self.clone(),
+                        cookie_id,
                         client_id,
                         Duration::from_millis(self.consts.max_interval_ms),
                         tx,
@@ -192,15 +200,7 @@ impl LongPollingServiceContext {
         client_id: ClientId,
         headers: HeaderMap,
         channels: Vec<String>,
-    ) -> Result<(), ClientId> {
-        if !self.check_client_id(&client_id).await {
-            tracing::error!(
-                client_id = %client_id,
-                "Non-existing client with clientId `{client_id}`."
-            );
-            return Err(client_id);
-        }
-
+    ) {
         let mut channels_data_write_guard = self.channels_data.write().await;
         for channel in channels.iter() {
             match channels_data_write_guard.entry(channel.to_string()) {
@@ -238,8 +238,6 @@ impl LongPollingServiceContext {
                 channels,
             })
             .await;
-
-        Ok(())
     }
 
     // TODO: Spawn task and send unsubscribe command through channel?
@@ -316,8 +314,20 @@ impl LongPollingServiceContext {
     }
 
     #[inline]
-    pub(crate) async fn check_client_id(&self, client_id: &ClientId) -> bool {
-        self.client_id_senders.read().await.contains_key(client_id)
+    pub(crate) async fn check_client(&self, jar: &CookieJar, client_id: &ClientId) -> Option<()> {
+        let cookie_id = jar
+            .get(BAYEUX_BROWSER)
+            .map(Cookie::value)
+            .map(CookieId::parse)
+            .and_then(Result::ok)?;
+
+        self.client_id_senders
+            .read()
+            .await
+            .get(client_id)
+            .map(ClientSender::cookie_id)
+            .eq(&Some(cookie_id))
+            .then_some(())
     }
 
     #[inline]

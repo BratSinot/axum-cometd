@@ -5,12 +5,14 @@ use crate::{
     LongPollingServiceContext,
 };
 use axum::http::StatusCode;
+use axum_extra::extract::CookieJar;
 use serde_json::json;
 use std::time::Duration;
 
 #[inline]
 pub(super) async fn wait_client_message_handle(
     context: &LongPollingServiceContext,
+    jar: CookieJar,
     message: Message,
 ) -> HandlerResult<Vec<Message>> {
     let Message {
@@ -24,6 +26,11 @@ pub(super) async fn wait_client_message_handle(
         || Message::session_unknown(id.clone(), channel.clone(), Some(Advice::handshake()));
 
     let client_id = client_id.ok_or_else(session_unknown)?;
+    context
+        .check_client(&jar, &client_id)
+        .await
+        .ok_or_else(session_unknown)?;
+
     let timeout = advice
         .and_then(|advice| advice.timeout)
         .unwrap_or(context.consts.timeout_ms);

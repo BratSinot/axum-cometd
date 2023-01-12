@@ -2,7 +2,7 @@ mod client_timeout;
 
 use crate::{
     messages::SubscriptionMessage,
-    types::{ClientId, ClientReceiver},
+    types::{ClientId, ClientReceiver, CookieId},
     LongPollingServiceContext,
 };
 use std::{fmt::Debug, sync::Arc, time::Duration};
@@ -13,55 +13,53 @@ use tokio::sync::{
 
 #[derive(Debug)]
 pub(crate) struct ClientSender {
-    stop_signal: Arc<Notify>,
-    start_timeout: Arc<Notify>,
-    cancel_timeout: Arc<Notify>,
+    cookie_id: CookieId,
+    signals: Arc<Signals>,
     tx: Sender<SubscriptionMessage>,
     rx: Arc<Mutex<Receiver<SubscriptionMessage>>>,
+}
+
+#[derive(Debug, Default)]
+pub(crate) struct Signals {
+    pub(crate) stop_signal: Notify,
+    pub(crate) start_timeout: Notify,
+    pub(crate) cancel_timeout: Notify,
 }
 
 impl ClientSender {
     #[inline]
     pub(crate) fn create(
         context: Arc<LongPollingServiceContext>,
+        cookie_id: CookieId,
         client_id: ClientId,
         timeout: Duration,
         tx: Sender<SubscriptionMessage>,
         rx: Receiver<SubscriptionMessage>,
     ) -> Self {
-        let stop_signal = Arc::new(Notify::new());
-        let start_timeout = Arc::new(Notify::new());
-        let cancel_timeout = Arc::new(Notify::new());
+        let signals = Arc::new(Signals::default());
         let rx = Arc::new(Mutex::new(rx));
 
-        client_timeout::spawn(
-            context,
-            client_id,
-            timeout,
-            stop_signal.clone(),
-            start_timeout.clone(),
-            cancel_timeout.clone(),
-        );
+        client_timeout::spawn(context, client_id, timeout, signals.clone());
 
-        start_timeout.notify_waiters();
+        signals.start_timeout.notify_waiters();
 
         Self {
-            stop_signal,
-            start_timeout,
-            cancel_timeout,
+            cookie_id,
+            signals,
             tx,
             rx,
         }
     }
 
+    #[inline(always)]
+    pub(crate) fn cookie_id(&self) -> CookieId {
+        self.cookie_id
+    }
+
     #[inline]
     pub(crate) fn subscribe(&self) -> ClientReceiver {
-        self.cancel_timeout.notify_waiters();
-
-        let start_timeout = self.start_timeout.clone();
-        let rx = self.rx.clone();
-
-        ClientReceiver::new(start_timeout, rx)
+        self.signals.cancel_timeout.notify_waiters();
+        ClientReceiver::new(self.signals.clone(), self.rx.clone())
     }
 
     #[inline(always)]
@@ -75,6 +73,6 @@ impl ClientSender {
 
 impl Drop for ClientSender {
     fn drop(&mut self) {
-        self.stop_signal.notify_one();
+        self.signals.stop_signal.notify_one();
     }
 }
