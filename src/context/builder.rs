@@ -1,6 +1,5 @@
 use crate::{
-    types::Callback, ClientIdGen, LongPollingServiceContext, SessionAddedArgs, SessionRemovedArgs,
-    SubscribeArgs,
+    types::Callback, LongPollingServiceContext, SessionAddedArgs, SessionRemovedArgs, SubscribeArgs,
 };
 use ahash::AHashMap;
 use std::{future::Future, sync::Arc};
@@ -93,9 +92,8 @@ impl LongPollingServiceContextBuilder {
             channel_name_validator: Default::default(),
             consts,
             channels_data: RwLock::new(AHashMap::with_capacity(subscriptions_storage_capacity)),
-            client_id_senders: Arc::new(RwLock::new((
-                ClientIdGen::new(),
-                AHashMap::with_capacity(client_ids_storage_capacity),
+            client_id_senders: Arc::new(RwLock::new(AHashMap::with_capacity(
+                client_ids_storage_capacity,
             ))),
         })
     }

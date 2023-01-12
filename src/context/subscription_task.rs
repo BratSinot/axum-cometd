@@ -26,7 +26,7 @@ pub(crate) fn spawn(
                 .get(&channel)
                 .into_iter()
                 .flat_map(Channel::client_ids)
-                .filter_map(|client_id| client_id_channels.1.get(client_id).map(|v| (client_id, v)))
+                .filter_map(|client_id| client_id_channels.get(client_id).map(|v| (client_id, v)))
             {
                 tracing::trace!(
                     client_id = %client_id,

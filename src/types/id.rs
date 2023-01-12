@@ -1,36 +1,29 @@
 use serde::{de::Unexpected, Deserialize, Deserializer, Serialize, Serializer};
-use std::fmt::{Debug, Display, Formatter};
+use std::{
+    fmt::{Debug, Display, Formatter},
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 #[derive(Clone, Copy, Hash, Eq, PartialEq)]
 pub(crate) struct Id([u32; 5]);
 
 impl Id {
     #[inline]
-    pub(crate) fn rand() -> Self {
+    pub(crate) fn gen() -> Self {
         use rand::Rng;
 
-        let mut id = [0u32; 5];
-        rand::thread_rng().fill(&mut id);
+        let timestamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos();
+
+        let lo = (timestamp & u128::from(u32::MAX)) as u32;
+        let mid = ((timestamp >> 32) & u128::from(u32::MAX)) as u32;
+
+        let mut id = [mid, lo, 0, 0, 0];
+        rand::thread_rng().fill(&mut id[2..]);
 
         Self(id)
-    }
-
-    #[inline]
-    pub(crate) fn rotr(&mut self) {
-        let [a0, a1, a2, a3, a4] = &mut self.0;
-        let (b0, b1, b2, b3, b4) = (*a0 & 0b1, *a1 & 0b1, *a2 & 0b1, *a3 & 0b1, *a4 & 0b1);
-
-        *a0 >>= 1;
-        *a1 >>= 1;
-        *a2 >>= 1;
-        *a3 >>= 1;
-        *a4 >>= 1;
-
-        *a0 |= b4 << 31;
-        *a1 |= b0 << 31;
-        *a2 |= b1 << 31;
-        *a3 |= b2 << 31;
-        *a4 |= b3 << 31;
     }
 }
 
