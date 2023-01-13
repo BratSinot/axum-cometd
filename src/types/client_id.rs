@@ -1,6 +1,6 @@
 use crate::types::Id;
+use core::fmt::{Debug, Display, Formatter};
 use serde::{Deserialize, Serialize};
-use std::fmt::{Debug, Display, Formatter};
 
 /// CometD ClientId.
 #[derive(Clone, Copy, Hash, Eq, PartialEq, Deserialize, Serialize)]
@@ -14,13 +14,13 @@ impl ClientId {
 }
 
 impl Debug for ClientId {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         Debug::fmt(&self.0, f)
     }
 }
 
 impl Display for ClientId {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         Display::fmt(&self.0, f)
     }
 }

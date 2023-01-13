@@ -1,5 +1,9 @@
+// https://github.com/rust-lang/rust-clippy/issues/10198
+#![allow(clippy::std_instead_of_core)]
+
 use crate::{messages::SubscriptionMessage, types::Signals};
-use std::{fmt::Debug, sync::Arc, time::Duration};
+use core::{fmt::Debug, time::Duration};
+use std::sync::Arc;
 use tokio::{
     sync::{mpsc::Receiver, Mutex, TryLockError},
     time,

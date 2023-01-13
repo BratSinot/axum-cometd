@@ -1,3 +1,6 @@
+// https://github.com/rust-lang/rust-clippy/issues/10198
+#![allow(clippy::std_instead_of_core)]
+
 use serde::de;
 use serde::de::Unexpected;
 

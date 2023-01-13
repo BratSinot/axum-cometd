@@ -14,14 +14,15 @@ impl WildNamesCache {
     pub(crate) async fn fetch_wildnames(&self, name: &str) -> Arc<VecDeque<ChannelId>> {
         let read_guard = self.cache.read().await;
         if let Some(wildnames) = read_guard.get(name) {
-            wildnames.clone()
+            Arc::clone(wildnames)
         } else {
             drop(read_guard);
             let mut write_guard = self.cache.write().await;
-            write_guard
-                .entry(name.to_string())
-                .or_insert_with(|| Arc::new(get_wild_names(name)))
-                .clone()
+            Arc::clone(
+                write_guard
+                    .entry(name.to_owned())
+                    .or_insert_with(|| Arc::new(get_wild_names(name))),
+            )
         }
     }
 

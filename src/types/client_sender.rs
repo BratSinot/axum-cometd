@@ -5,7 +5,8 @@ use crate::{
     types::{ClientId, ClientReceiver, CookieId},
     LongPollingServiceContext,
 };
-use std::{fmt::Debug, sync::Arc, time::Duration};
+use core::{fmt::Debug, time::Duration};
+use std::sync::Arc;
 use tokio::sync::{
     mpsc::{error::SendError, Receiver, Sender},
     Mutex, Notify,
@@ -39,7 +40,7 @@ impl ClientSender {
         let signals = Arc::new(Signals::default());
         let rx = Arc::new(Mutex::new(rx));
 
-        client_timeout::spawn(context, client_id, timeout, signals.clone());
+        client_timeout::spawn(context, client_id, timeout, Arc::clone(&signals));
 
         signals.start_timeout.notify_waiters();
 
@@ -52,14 +53,14 @@ impl ClientSender {
     }
 
     #[inline(always)]
-    pub(crate) fn cookie_id(&self) -> CookieId {
+    pub(crate) const fn cookie_id(&self) -> CookieId {
         self.cookie_id
     }
 
     #[inline]
     pub(crate) fn subscribe(&self) -> ClientReceiver {
         self.signals.cancel_timeout.notify_waiters();
-        ClientReceiver::new(self.signals.clone(), self.rx.clone())
+        ClientReceiver::new(Arc::clone(&self.signals), Arc::clone(&self.rx))
     }
 
     #[inline(always)]

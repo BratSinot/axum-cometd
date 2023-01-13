@@ -1,6 +1,7 @@
 use crate::{handlers::*, LongPollingServiceContext};
 use axum::{routing::post, Router};
-use std::{fmt::Debug, sync::Arc};
+use core::fmt::Debug;
+use std::sync::Arc;
 
 /// A builder to construct `axum::Route` of CometD server.
 #[derive(Debug)]
@@ -34,13 +35,14 @@ impl RouterBuilder {
     ///
     /// # Example
     /// ```rust
+    /// use std::sync::Arc;
     /// use axum_cometd::RouterBuilder;
     ///
     /// # let context = axum_cometd::LongPollingServiceContextBuilder::new().build();
-    /// let app = RouterBuilder::new().build(&context);
+    /// let app = RouterBuilder::new().build(Arc::clone(&context));
     /// ```
     #[inline]
-    pub fn build(self, context: &Arc<LongPollingServiceContext>) -> Router {
+    pub fn build(self, context: Arc<LongPollingServiceContext>) -> Router {
         let Self {
             subscribe_base_path,
             handshake_base_path,
@@ -56,23 +58,25 @@ impl RouterBuilder {
                 &format!("{disconnect_base_path}/disconnect"),
                 post(disconnect),
             )
-            .with_state(context.clone())
+            .with_state(context)
     }
 
     /// Set subscribe base-path for routers.
     ///
     /// # Example
     /// ```rust
+    /// use std::sync::Arc;
     /// use axum_cometd::RouterBuilder;
     ///
     /// # let context = axum_cometd::LongPollingServiceContextBuilder::new().build();
     /// let app = RouterBuilder::new()
     ///     // Ex: `/` -> `/bar`
     ///     .subscribe_base_path("/bar")
-    ///     .build(&context);
+    ///     .build(Arc::clone(&context));
     /// ```
     #[inline(always)]
-    pub fn subscribe_base_path(self, path: &'static str) -> Self {
+    #[must_use]
+    pub const fn subscribe_base_path(self, path: &'static str) -> Self {
         Self {
             subscribe_base_path: path,
             ..self
@@ -83,16 +87,18 @@ impl RouterBuilder {
     ///
     /// # Example
     /// ```rust
+    /// use std::sync::Arc;
     /// use axum_cometd::RouterBuilder;
     ///
     /// # let context = axum_cometd::LongPollingServiceContextBuilder::new().build();
     /// let app = RouterBuilder::new()
     ///     // Ex: `/handshake` -> `/bar/handshake`
     ///     .handshake_base_path("/bar")
-    ///     .build(&context);
+    ///     .build(Arc::clone(&context));
     /// ```
     #[inline(always)]
-    pub fn handshake_base_path(self, path: &'static str) -> Self {
+    #[must_use]
+    pub const fn handshake_base_path(self, path: &'static str) -> Self {
         Self {
             handshake_base_path: path,
             ..self
@@ -103,16 +109,18 @@ impl RouterBuilder {
     ///
     /// # Example
     /// ```rust
+    /// use std::sync::Arc;
     /// use axum_cometd::RouterBuilder;
     ///
     /// # let context = axum_cometd::LongPollingServiceContextBuilder::new().build();
     /// let app = RouterBuilder::new()
     ///     // Ex: `/connect` -> `/bar/connect`
     ///     .connect_base_path("/bar")
-    ///     .build(&context);
+    ///     .build(Arc::clone(&context));
     /// ```
     #[inline(always)]
-    pub fn connect_base_path(self, path: &'static str) -> Self {
+    #[must_use]
+    pub const fn connect_base_path(self, path: &'static str) -> Self {
         Self {
             connect_base_path: path,
             ..self
@@ -123,16 +131,18 @@ impl RouterBuilder {
     ///
     /// # Example
     /// ```rust
+    /// use std::sync::Arc;
     /// use axum_cometd::RouterBuilder;
     ///
     /// # let context = axum_cometd::LongPollingServiceContextBuilder::new().build();
     /// let app = RouterBuilder::new()
     ///     // Ex: `/disconnect` -> `/bar/disconnect`
     ///     .disconnect_base_path("/bar")
-    ///     .build(&context);
+    ///     .build(Arc::clone(&context));
     /// ```
     #[inline(always)]
-    pub fn disconnect_base_path(self, path: &'static str) -> Self {
+    #[must_use]
+    pub const fn disconnect_base_path(self, path: &'static str) -> Self {
         Self {
             disconnect_base_path: path,
             ..self

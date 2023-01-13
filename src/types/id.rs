@@ -1,9 +1,7 @@
 use crate::error::ParseError;
+use core::fmt::{Debug, Display, Formatter};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use std::{
-    fmt::{Debug, Display, Formatter},
-    time::{SystemTime, UNIX_EPOCH},
-};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Clone, Copy, Hash, Eq, PartialEq)]
 pub(crate) struct Id([u32; 5]);
@@ -29,17 +27,21 @@ impl Id {
 
     #[inline]
     pub(crate) fn parse(str: &str) -> Result<Self, ParseError<'_>> {
+        fn hex_str_to_u32(s: &str) -> Result<u32, ParseError<'_>> {
+            u32::from_str_radix(s, 16).map_err(|_| ParseError::InvalidValue(s))
+        }
+
         match str.len() {
             40 => {
-                let p0 = &str[0..8];
-                let p1 = &str[8..16];
-                let p2 = &str[16..24];
-                let p3 = &str[24..32];
-                let p4 = &str[32..40];
-
-                fn hex_str_to_u32(s: &str) -> Result<u32, ParseError<'_>> {
-                    u32::from_str_radix(s, 16).map_err(|_| ParseError::InvalidValue(s))
-                }
+                let (p0, p1, p2, p3, p4) = unsafe {
+                    (
+                        str.get_unchecked(0..8),
+                        str.get_unchecked(8..16),
+                        str.get_unchecked(16..24),
+                        str.get_unchecked(24..32),
+                        str.get_unchecked(32..40),
+                    )
+                };
 
                 Ok(Self([
                     hex_str_to_u32(p0)?,
@@ -55,15 +57,15 @@ impl Id {
 }
 
 impl Debug for Id {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         Display::fmt(self, f)
     }
 }
 
 impl Display for Id {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         for u32_chunk in self.0 {
-            write!(f, "{u32_chunk:08x?}")?;
+            write!(f, "{u32_chunk:08x}")?;
         }
         Ok(())
     }

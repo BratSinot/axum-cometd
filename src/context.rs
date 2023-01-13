@@ -15,9 +15,10 @@ use crate::{
 use ahash::{AHashMap, AHashSet};
 use axum::http::HeaderMap;
 use axum_extra::extract::{cookie::Cookie, CookieJar};
+use core::{fmt::Debug, ops::Deref, time::Duration};
 use serde::Serialize;
 use serde_json::json;
-use std::{collections::hash_map::Entry, fmt::Debug, ops::Deref, sync::Arc, time::Duration};
+use std::{collections::hash_map::Entry, sync::Arc};
 use tokio::sync::{mpsc, RwLock};
 
 /// Context for sending messages to channels.
@@ -42,12 +43,12 @@ pub(crate) struct Channel {
 
 impl Channel {
     #[inline(always)]
-    fn client_ids(&self) -> &AHashSet<ClientId> {
+    const fn client_ids(&self) -> &AHashSet<ClientId> {
         &self.client_ids
     }
 
     #[inline(always)]
-    pub(crate) fn tx(&self) -> &mpsc::Sender<SubscriptionMessage> {
+    pub(crate) const fn tx(&self) -> &mpsc::Sender<SubscriptionMessage> {
         &self.tx
     }
 }
@@ -92,7 +93,7 @@ impl LongPollingServiceContext {
     pub async fn send(
         &self,
         channel: &str,
-        message: impl Debug + Serialize,
+        message: impl Debug + Serialize + Send,
     ) -> Result<(), SendError> {
         self.channel_name_validator
             .validate_send_channel_name(channel)
@@ -100,12 +101,12 @@ impl LongPollingServiceContext {
             .ok_or(SendError::InvalidChannel)?;
 
         let subscription_message = SubscriptionMessage {
-            channel: channel.to_string(),
+            channel: channel.to_owned(),
             msg: json!(message),
         };
         let wildnames = self.wildnames_cache.fetch_wildnames(channel).await;
         let read_guard = self.channels_data.read().await;
-        for channel in std::iter::once(channel).chain(wildnames.iter().map(String::deref)) {
+        for channel in core::iter::once(channel).chain(wildnames.iter().map(String::deref)) {
             if let Some(tx) = read_guard.get(channel).map(Channel::tx) {
                 tx.send(subscription_message.clone()).await?;
             } else {
@@ -125,7 +126,7 @@ impl LongPollingServiceContext {
         &self,
         channel: &str,
         client_id: &ClientId,
-        msg: impl Debug + Serialize,
+        msg: impl Debug + Serialize + Send + Sync,
     ) -> Result<(), SendError> {
         self.channel_name_validator
             .validate_send_channel_name(channel)
@@ -134,7 +135,7 @@ impl LongPollingServiceContext {
 
         if let Some(tx) = self.client_id_senders.read().await.get(client_id) {
             tx.send(SubscriptionMessage {
-                channel: channel.to_string(),
+                channel: channel.to_owned(),
                 msg: json!(msg),
             })
             .await?;
@@ -154,7 +155,7 @@ impl LongPollingServiceContext {
         self: &Arc<Self>,
         headers: HeaderMap,
         cookie_id: CookieId,
-    ) -> ClientId {
+    ) -> Option<ClientId> {
         #[allow(clippy::option_map_unit_fn)]
         let client_id = {
             let mut client_id_channels_write_guard = self.client_id_senders.write().await;
@@ -162,26 +163,26 @@ impl LongPollingServiceContext {
             let client_id = ClientId::gen();
             let (tx, rx) = mpsc::channel(self.consts.client_channel_capacity);
 
-            client_id_channels_write_guard
-                .insert(
-                    client_id,
-                    ClientSender::create(
-                        self.clone(),
+            match client_id_channels_write_guard.entry(client_id) {
+                Entry::Occupied(_) => return None,
+                Entry::Vacant(v) => {
+                    v.insert(ClientSender::create(
+                        Arc::clone(self),
                         cookie_id,
                         client_id,
                         Duration::from_millis(self.consts.max_interval_ms),
                         tx,
                         rx,
-                    ),
-                )
-                .map(|_| panic!("ClientId::gen() return already used ClientId!"));
+                    ));
+                }
+            }
 
-            client_id
-        };
+            Some(client_id)
+        }?;
 
         self.session_added
             .call(SessionAddedArgs {
-                context: self.clone(),
+                context: Arc::clone(self),
                 client_id,
                 headers,
             })
@@ -192,7 +193,7 @@ impl LongPollingServiceContext {
             "New client was registered with clientId `{client_id}`."
         );
 
-        client_id
+        Some(client_id)
     }
 
     pub(crate) async fn subscribe(
@@ -202,13 +203,13 @@ impl LongPollingServiceContext {
         channels: Vec<String>,
     ) {
         let mut channels_data_write_guard = self.channels_data.write().await;
-        for channel in channels.iter() {
+        for channel in &channels {
             match channels_data_write_guard.entry(channel.to_string()) {
                 Entry::Occupied(o) => o.into_mut(),
                 Entry::Vacant(v) => {
                     let (tx, rx) = mpsc::channel(self.consts.subscription_channel_capacity);
 
-                    subscription_task::spawn(channel.to_string(), rx, self.clone());
+                    subscription_task::spawn(channel.to_string(), rx, Arc::clone(self));
                     tracing::info!(
                         channel = channel,
                         "New subscription ({channel}) channel was registered."
@@ -232,7 +233,7 @@ impl LongPollingServiceContext {
 
         self.subscribe_added
             .call(SubscribeArgs {
-                context: self.clone(),
+                context: Arc::clone(self),
                 client_id,
                 headers,
                 channels,
@@ -251,7 +252,7 @@ impl LongPollingServiceContext {
 
         self.session_removed
             .call(SessionRemovedArgs {
-                context: self.clone(),
+                context: Arc::clone(self),
                 client_id,
             })
             .await;
@@ -263,10 +264,12 @@ impl LongPollingServiceContext {
         // TODO: Replace on LinkedList?
         let mut removed_channels = AHashSet::new();
 
-        self.channels_data
-            .write()
-            .await
-            .retain(|channel, Channel { client_ids, tx: _ }| {
+        self.channels_data.write().await.retain(
+            |channel,
+             &mut Channel {
+                 ref mut client_ids,
+                 tx: _,
+             }| {
                 if client_ids.remove(client_id) {
                     tracing::info!(
                         client_id = %client_id,
@@ -285,7 +288,8 @@ impl LongPollingServiceContext {
                 } else {
                     true
                 }
-            });
+            },
+        );
 
         self.wildnames_cache
             .remove_wildnames(removed_channels)

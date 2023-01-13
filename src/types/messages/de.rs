@@ -43,19 +43,19 @@ mod tests {
             from_value::<Message>(json!({"name": "name", "subscription": "str0"}))
                 .unwrap()
                 .subscription,
-            Some(vec!["str0".to_string()])
+            Some(vec!["str0".to_owned()])
         );
         assert_eq!(
             from_value::<Message>(json!({"name": "name", "subscription": ["str0"]}))
                 .unwrap()
                 .subscription,
-            Some(vec!["str0".to_string()])
+            Some(vec!["str0".to_owned()])
         );
         assert_eq!(
             from_value::<Message>(json!({"name": "name", "subscription": ["str0", "str1"]}))
                 .unwrap()
                 .subscription,
-            Some(vec!["str0".to_string(), "str1".to_string()])
+            Some(vec!["str0".to_owned(), "str1".to_owned()])
         );
         assert_eq!(
             from_value::<Message>(json!({"name": "name"}))

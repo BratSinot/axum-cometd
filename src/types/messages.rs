@@ -2,10 +2,10 @@ mod de;
 
 use crate::types::{ChannelId, ClientId};
 use axum::Json;
+use core::fmt::Debug;
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use serde_with::skip_serializing_none;
-use std::fmt::Debug;
 
 #[skip_serializing_none]
 #[derive(Debug, Default, Serialize, Deserialize)]

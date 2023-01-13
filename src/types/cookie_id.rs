@@ -1,5 +1,5 @@
 use crate::{error::ParseError, types::Id};
-use std::fmt::{Debug, Display, Formatter};
+use core::fmt::{Debug, Display, Formatter};
 
 pub(crate) const BAYEUX_BROWSER: &str = "BAYEUX_BROWSER";
 
@@ -19,13 +19,13 @@ impl CookieId {
 }
 
 impl Debug for CookieId {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         Debug::fmt(&self.0, f)
     }
 }
 
 impl Display for CookieId {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         Display::fmt(&self.0, f)
     }
 }

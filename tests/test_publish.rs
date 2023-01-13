@@ -1,9 +1,10 @@
 use axum::http::StatusCode;
 use axum_cometd::{LongPollingServiceContextBuilder, RouterBuilder};
+use core::time::Duration;
 use serde_json::{json, Value as JsonValue};
-use std::{
-    sync::atomic::{AtomicU64, Ordering},
-    time::Duration,
+use std::sync::{
+    atomic::{AtomicU64, Ordering},
+    Arc,
 };
 use test_common::{ClientMock, ResponseExt, TEST_CLIENT_ID};
 use tokio::time::timeout;
@@ -22,7 +23,7 @@ fn build_mock_client() -> ClientMock {
     let context = LongPollingServiceContextBuilder::new()
         .timeout_ms(TIMEOUT_MS)
         .build();
-    let router = RouterBuilder::new().build(&context);
+    let router = RouterBuilder::new().build(Arc::clone(&context));
 
     ClientMock::create("", "/", "", "", router)
 }

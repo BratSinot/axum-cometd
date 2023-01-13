@@ -5,7 +5,7 @@ pub(crate) fn get_wild_names(name: &str) -> VecDeque<String> {
     let mut segments = name.split('/');
     let last_segment = segments.next_back();
 
-    if !name.is_empty() && !matches!(last_segment, Some("*") | Some("**")) {
+    if !name.is_empty() && !matches!(last_segment, Some("*" | "**")) {
         let len = count_wildnames(name);
 
         let mut ret = VecDeque::with_capacity(len);
@@ -36,7 +36,7 @@ mod tests {
 
     #[test]
     fn test_count_wildnames() {
-        for (name, result) in TEST_WILDNAMES.iter() {
+        for (name, result) in TEST_WILDNAMES {
             if let Some(result) = result {
                 if !name.ends_with("/*") && !name.ends_with("/**") {
                     assert_eq!(count_wildnames(name), result.len(), "{name}");

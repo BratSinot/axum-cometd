@@ -51,7 +51,10 @@ async fn main() {
         })
         .build();
     let service = Router::new()
-        .nest("/notifications", RouterBuilder::new().build(&context))
+        .nest(
+            "/notifications",
+            RouterBuilder::new().build(Arc::clone(&context)),
+        )
         .into_make_service();
     let addr = SocketAddr::new(IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0)), 1025);
 
@@ -59,7 +62,7 @@ async fn main() {
 
     tracing::info!("Listen on: `{addr}`.");
 
-    spawn_topic(context.clone(), "/topic0");
+    spawn_topic(Arc::clone(&context), "/topic0");
     spawn_topic(context, "/topic1");
 
     handler.await.unwrap().unwrap();

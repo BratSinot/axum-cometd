@@ -2,7 +2,8 @@ use crate::{
     types::{ClientId, Signals},
     LongPollingServiceContext,
 };
-use std::{sync::Arc, time::Duration};
+use core::time::Duration;
+use std::sync::Arc;
 use tokio::{select, sync::Notify, time};
 
 pub(super) fn spawn(
@@ -13,10 +14,10 @@ pub(super) fn spawn(
 ) {
     tokio::task::spawn(async move {
         let Signals {
-            stop_signal,
-            start_timeout,
-            cancel_timeout,
-        } = &*signals;
+            ref stop_signal,
+            ref start_timeout,
+            ref cancel_timeout,
+        } = *signals;
 
         loop {
             select! {
