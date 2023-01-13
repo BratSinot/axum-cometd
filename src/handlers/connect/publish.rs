@@ -15,19 +15,18 @@ pub(super) async fn publish_handle(
         message
             .channel
             .as_ref()
-            .map(|channel| channel.contains("/meta/"))
-            .unwrap_or(false)
+            .map_or(false, |channel| channel.contains("/meta/"))
     }) {
         Err(StatusCode::BAD_REQUEST)
     } else {
-        for message in messages.iter_mut() {
+        for message in &mut messages {
             let Message {
                 id,
                 channel,
                 data,
                 client_id,
                 ..
-            } = std::mem::take(message);
+            } = core::mem::take(message);
 
             *message = match (channel, client_id) {
                 (None, _) => Message::channel_missing(id),

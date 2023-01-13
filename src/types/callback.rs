@@ -1,4 +1,4 @@
-use std::{
+use core::{
     fmt::{Debug, Formatter},
     future::Future,
     pin::Pin,
@@ -15,11 +15,11 @@ pub(crate) enum Callback<T> {
 }
 
 impl<T> Debug for Callback<T> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let name = match self {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        let name = match *self {
             Callback::Empty => "Empty",
-            Callback::Sync(_) => "Sync",
-            Callback::Async(_) => "Async",
+            Callback::Sync(ref _callback) => "Sync",
+            Callback::Async(ref _callback) => "Async",
         };
 
         f.debug_struct("Callback").field("self", &name).finish()
@@ -45,11 +45,14 @@ impl<T> Callback<T> {
         Self::Async(Box::new(move |arg| Box::pin(callback(arg))))
     }
 
-    pub(crate) async fn call(&self, argument: T) {
-        match self {
+    pub(crate) async fn call(&self, argument: T)
+    where
+        T: Send + Sync,
+    {
+        match *self {
             Callback::Empty => {}
-            Callback::Sync(func) => func(argument),
-            Callback::Async(afunc) => afunc(argument).await,
+            Callback::Sync(ref func) => func(argument),
+            Callback::Async(ref afunc) => afunc(argument).await,
         }
     }
 }

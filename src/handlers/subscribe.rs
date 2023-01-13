@@ -23,9 +23,7 @@ pub(crate) async fn subscribe(
         ..
     } = message;
 
-    if channel.as_deref() != Some("/meta/subscribe") {
-        Err(Message::session_unknown(id, channel, None).into())
-    } else {
+    if channel.as_deref() == Some("/meta/subscribe") {
         let session_unknown = || Message::session_unknown(id.clone(), channel.clone(), None);
 
         let client_id = client_id.ok_or_else(session_unknown)?;
@@ -56,5 +54,7 @@ pub(crate) async fn subscribe(
             subscription: Some(subscription),
             ..Message::ok(id, channel)
         }]))
+    } else {
+        Err(Message::session_unknown(id, channel, None).into())
     }
 }

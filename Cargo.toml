@@ -1,6 +1,6 @@
 [package]
 name = "axum-cometd"
-version = "0.7.0-rc.2"
+version = "0.7.0"
 edition = "2021"
 license = "Apache-2.0"
 repository = "https://github.com/BratSinot/axum-cometd"
@@ -28,7 +28,6 @@ serde_json = "1.0.*"
 serde_with = { version = "2.2.*", default-features = false, features = ["macros"] }
 thiserror = "1.0.*"
 tokio = { version = "1", features = ["macros", "sync", "rt", "time"] }
-tower-service = "0.3.*"
 tracing = "0.1.*"
 
 [dev-dependencies]

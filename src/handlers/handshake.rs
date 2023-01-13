@@ -28,6 +28,7 @@ pub(crate) async fn handshake(
     } else if minimum_version.as_deref() != Some("1.0") {
         Err(Message::wrong_minimum_version(id, minimum_version).into())
     } else {
+        #[allow(clippy::option_if_let_else)]
         let cookie_id = if let Some(cookie_id) = jar
             .get(BAYEUX_BROWSER)
             .map(Cookie::value)
@@ -41,7 +42,9 @@ pub(crate) async fn handshake(
             cookie_id
         };
 
-        let client_id = context.register(headers, cookie_id).await;
+        let client_id = context.register(headers, cookie_id).await.ok_or_else(|| {
+            Message::session_unknown(id.clone(), channel.clone(), Some(Advice::handshake()))
+        })?;
 
         Ok((
             jar,

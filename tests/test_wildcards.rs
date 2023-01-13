@@ -9,7 +9,7 @@ fn build_context_and_mock_client() -> (Arc<LongPollingServiceContext>, ClientMoc
     let context = LongPollingServiceContextBuilder::new()
         .timeout_ms(1000)
         .build();
-    let router = RouterBuilder::new().build(&context);
+    let router = RouterBuilder::new().build(Arc::clone(&context));
     let mock_client = ClientMock::create("", "/", "", "", router);
 
     (context, mock_client)

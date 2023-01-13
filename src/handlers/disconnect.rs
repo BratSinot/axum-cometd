@@ -17,9 +17,7 @@ pub(crate) async fn disconnect(
         ..
     } = message;
 
-    if channel.as_deref() != Some("/meta/disconnect") {
-        Err(Message::session_unknown(id, channel, None).into())
-    } else {
+    if channel.as_deref() == Some("/meta/disconnect") {
         let session_unknown = || Message::session_unknown(id.clone(), channel.clone(), None);
 
         let client_id = client_id.ok_or_else(session_unknown)?;
@@ -31,5 +29,7 @@ pub(crate) async fn disconnect(
         context.unsubscribe(client_id).await;
 
         Ok(StatusCode::BAD_REQUEST)
+    } else {
+        Err(Message::session_unknown(id, channel, None).into())
     }
 }

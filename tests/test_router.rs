@@ -23,7 +23,7 @@ async fn test_different_paths() {
         .connect_base_path("/conn")
         .disconnect_base_path("/disconn");
     let _ = format!("{builder:?}");
-    let router = Router::new().nest("/root", builder.build(&context));
+    let router = Router::new().nest("/root", builder.build(Arc::clone(&context)));
 
     let mut mock_client = ClientMock::create(
         "/root/hand",
@@ -91,7 +91,7 @@ async fn test_callbacks() {
         })
         .build();
 
-    let router = RouterBuilder::new().build(&context);
+    let router = RouterBuilder::new().build(Arc::clone(&context));
 
     let mut mock_client = ClientMock::create("", "/", "", "", router);
     mock_client.handshake().await;

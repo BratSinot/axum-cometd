@@ -2,7 +2,8 @@ use crate::{
     types::Callback, LongPollingServiceContext, SessionAddedArgs, SessionRemovedArgs, SubscribeArgs,
 };
 use ahash::AHashMap;
-use std::{future::Future, sync::Arc};
+use core::future::Future;
+use std::sync::Arc;
 use tokio::sync::RwLock;
 
 const DEFAULT_TIMEOUT_MS: u64 = 20_000;
@@ -100,18 +101,15 @@ impl LongPollingServiceContextBuilder {
 
     /// Set message wait timeout in milliseconds.
     #[inline(always)]
-    pub fn timeout_ms(self, timeout_ms: u64) -> Self {
-        Self {
-            consts: LongPollingServiceContextConsts {
-                timeout_ms,
-                ..self.consts
-            },
-            ..self
-        }
+    #[must_use]
+    pub const fn timeout_ms(mut self, timeout_ms: u64) -> Self {
+        self.consts.timeout_ms = timeout_ms;
+        self
     }
 
     /// Set timeout in milliseconds, that the client must wait between two connects.
     #[inline(always)]
+    #[must_use]
     pub fn interval_ms(self, _interval_ms: u64) -> Self {
         unimplemented!()
         /*Self {
@@ -125,60 +123,47 @@ impl LongPollingServiceContextBuilder {
 
     /// Set timeout in milliseconds, which server wait between erase clientId.
     #[inline(always)]
-    pub fn max_interval_ms(self, max_interval_ms: u64) -> Self {
-        Self {
-            consts: LongPollingServiceContextConsts {
-                max_interval_ms,
-                ..self.consts
-            },
-            ..self
-        }
+    #[must_use]
+    pub const fn max_interval_ms(mut self, max_interval_ms: u64) -> Self {
+        self.consts.max_interval_ms = max_interval_ms;
+        self
     }
 
     /// Set capacity of internal client channels.
     #[inline(always)]
-    pub fn client_channel_capacity(self, capacity: usize) -> Self {
-        Self {
-            consts: LongPollingServiceContextConsts {
-                client_channel_capacity: capacity,
-                ..self.consts
-            },
-            ..self
-        }
+    #[must_use]
+    pub const fn client_channel_capacity(mut self, capacity: usize) -> Self {
+        self.consts.client_channel_capacity = capacity;
+        self
     }
 
     /// Set capacity of internal client channels storage.
     #[inline(always)]
-    pub fn client_storage_capacity(self, capacity: usize) -> Self {
-        Self {
-            client_ids_storage_capacity: capacity,
-            ..self
-        }
+    #[must_use]
+    pub const fn client_storage_capacity(mut self, capacity: usize) -> Self {
+        self.client_ids_storage_capacity = capacity;
+        self
     }
 
     /// Set capacity of internal subscription channels.
     #[inline(always)]
-    pub fn subscription_channel_capacity(self, capacity: usize) -> Self {
-        Self {
-            consts: LongPollingServiceContextConsts {
-                subscription_channel_capacity: capacity,
-                ..self.consts
-            },
-            ..self
-        }
+    #[must_use]
+    pub const fn subscription_channel_capacity(mut self, capacity: usize) -> Self {
+        self.consts.subscription_channel_capacity = capacity;
+        self
     }
 
     /// Set capacity of internal subscription channels storage.
     #[inline(always)]
-    pub fn subscription_storage_capacity(self, capacity: usize) -> Self {
-        Self {
-            subscriptions_storage_capacity: capacity,
-            ..self
-        }
+    #[must_use]
+    pub const fn subscription_storage_capacity(mut self, capacity: usize) -> Self {
+        self.subscriptions_storage_capacity = capacity;
+        self
     }
 
     /// Set sync callback on new session creation.
     #[inline(always)]
+    #[must_use]
     pub fn session_added<F>(self, callback: F) -> Self
     where
         F: Fn(SessionAddedArgs) + Send + Sync + 'static,
@@ -191,6 +176,7 @@ impl LongPollingServiceContextBuilder {
 
     /// Set async callback on new session creation.
     #[inline(always)]
+    #[must_use]
     pub fn async_session_added<F, Fut>(self, callback: F) -> Self
     where
         F: Fn(SessionAddedArgs) -> Fut + Sync + Send + 'static,
@@ -204,6 +190,7 @@ impl LongPollingServiceContextBuilder {
 
     /// Set sync callback on new subscribe creation.
     #[inline(always)]
+    #[must_use]
     pub fn subscribe_added<F>(self, callback: F) -> Self
     where
         F: Fn(SubscribeArgs) + Send + Sync + 'static,
@@ -216,6 +203,7 @@ impl LongPollingServiceContextBuilder {
 
     /// Set async callback on new subscribe creation.
     #[inline(always)]
+    #[must_use]
     pub fn async_subscribe_added<F, Fut>(self, callback: F) -> Self
     where
         F: Fn(SubscribeArgs) -> Fut + Sync + Send + 'static,
@@ -229,6 +217,7 @@ impl LongPollingServiceContextBuilder {
 
     /// Set sync callback on new session creation.
     #[inline(always)]
+    #[must_use]
     pub fn session_removed<F>(self, callback: F) -> Self
     where
         F: Fn(SessionRemovedArgs) + Send + Sync + 'static,
@@ -241,6 +230,7 @@ impl LongPollingServiceContextBuilder {
 
     /// Set async callback on new session creation.
     #[inline(always)]
+    #[must_use]
     pub fn async_session_removed<F, Fut>(self, callback: F) -> Self
     where
         F: Fn(SessionRemovedArgs) -> Fut + Sync + Send + 'static,

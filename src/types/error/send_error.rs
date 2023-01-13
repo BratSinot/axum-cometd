@@ -1,3 +1,6 @@
+// https://github.com/rust-lang/rust-clippy/issues/10198
+#![allow(clippy::std_instead_of_core)]
+
 use crate::ClientId;
 use tokio::sync::mpsc::error::SendError as TokioSendError;
 

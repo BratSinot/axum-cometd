@@ -6,8 +6,8 @@ use crate::{
 };
 use axum::http::StatusCode;
 use axum_extra::extract::CookieJar;
+use core::time::Duration;
 use serde_json::json;
-use std::time::Duration;
 
 #[inline]
 pub(super) async fn wait_client_message_handle(
@@ -47,7 +47,7 @@ pub(super) async fn wait_client_message_handle(
         .recv_timeout(Duration::from_millis(timeout))
         .await
         .map_err(|error| {
-            client_receiver_error_to_message(error, id.clone(), channel.clone(), context)
+            client_receiver_error_to_message(&error, id.clone(), channel.clone(), context)
         })?
         .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
 
@@ -63,20 +63,20 @@ pub(super) async fn wait_client_message_handle(
 
 #[inline]
 fn client_receiver_error_to_message(
-    error: ClientReceiverError,
+    error: &ClientReceiverError,
     id: Option<String>,
     channel: Option<String>,
     context: &LongPollingServiceContext,
 ) -> Message {
-    match error {
-        ClientReceiverError::Elapsed(_) => Message {
+    match *error {
+        ClientReceiverError::Elapsed(ref _err) => Message {
             advice: Some(Advice::retry(
                 context.consts.timeout_ms,
                 context.consts.interval_ms,
             )),
             ..Message::ok(id, channel)
         },
-        ClientReceiverError::AlreadyLocked(_) => Message {
+        ClientReceiverError::AlreadyLocked(ref _err) => Message {
             id,
             channel,
             successful: Some(false),
