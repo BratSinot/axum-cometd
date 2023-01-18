@@ -1,7 +1,6 @@
-use crate::ext::CheckExt;
 use crate::{
     messages::{Advice, Message},
-    LongPollingServiceContext, SendError,
+    CheckExt, CookieJarExt, HandlerResult, LongPollingServiceContext, SendError,
 };
 use axum::http::StatusCode;
 use axum_extra::extract::CookieJar;
@@ -11,8 +10,12 @@ pub(super) async fn publish_handle(
     context: &LongPollingServiceContext,
     jar: CookieJar,
     mut messages: Vec<Message>,
-) -> Result<Vec<Message>, StatusCode> {
+) -> HandlerResult<Vec<Message>> {
     is_contains_meta_channel(&messages).check(&false, StatusCode::BAD_REQUEST)?;
+
+    let cookie_id = jar
+        .get_cookie_id()
+        .ok_or_else(|| Message::session_unknown(None, None, None))?;
 
     for message in &mut messages {
         let Message {
@@ -27,7 +30,7 @@ pub(super) async fn publish_handle(
             (None, _) => Message::channel_missing(id),
             (channel, None) => Message::session_unknown(id, channel, Some(Advice::handshake())),
             (Some(channel), Some(client_id)) => {
-                if context.check_client(&jar, &client_id).await.is_some() {
+                if context.check_client(cookie_id, &client_id).await.is_some() {
                     match context.send(&channel, data.unwrap_or_default()).await {
                         Ok(()) => {}
                         Err(SendError::Closed) => {

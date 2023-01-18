@@ -13,7 +13,7 @@ pub(crate) async fn connect(
     jar: CookieJar,
     Json(messages): Json<Vec<Message>>,
 ) -> HandlerResult<Json<Vec<Message>>> {
-    tracing::info!("Got connect request: `{messages:?}`.");
+    tracing::debug!("Got connect request: `{messages:?}`.");
 
     let ret = match <[_; 1]>::try_from(messages) {
         Ok([message]) => {
