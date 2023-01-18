@@ -35,8 +35,10 @@
 //!
 
 mod context;
+mod ext;
 mod handlers;
 mod types;
 mod utils;
 
+pub(crate) use ext::*;
 pub use {context::*, types::error::*, types::*};
