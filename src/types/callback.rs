@@ -7,13 +7,16 @@ use core::{
 use std::sync::Arc;
 
 type BoxedFuture = Pin<Box<dyn Future<Output = ()> + Send + Sync + 'static>>;
+type SyncCallback<T> = Box<dyn Fn(&Arc<LongPollingServiceContext>, T) + Send + Sync + 'static>;
+type AsyncCallback<T> =
+    Box<dyn Fn(&Arc<LongPollingServiceContext>, T) -> BoxedFuture + Send + Sync + 'static>;
 
 #[derive(Default)]
 pub(crate) enum Callback<T> {
     #[default]
     Empty,
-    Sync(Box<dyn Fn(&Arc<LongPollingServiceContext>, T) + Send + Sync + 'static>),
-    Async(Box<dyn Fn(&Arc<LongPollingServiceContext>, T) -> BoxedFuture + Send + Sync + 'static>),
+    Sync(SyncCallback<T>),
+    Async(AsyncCallback<T>),
 }
 
 impl<T> Debug for Callback<T> {
