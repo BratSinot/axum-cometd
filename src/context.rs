@@ -177,11 +177,7 @@ impl LongPollingServiceContext {
         }?;
 
         self.session_added
-            .call(SessionAddedArgs {
-                context: Arc::clone(self),
-                client_id,
-                headers,
-            })
+            .call(self, SessionAddedArgs { client_id, headers })
             .await;
 
         tracing::info!(
@@ -228,12 +224,14 @@ impl LongPollingServiceContext {
         );
 
         self.subscribe_added
-            .call(SubscribeArgs {
-                context: Arc::clone(self),
-                client_id,
-                headers,
-                channels,
-            })
+            .call(
+                self,
+                SubscribeArgs {
+                    client_id,
+                    headers,
+                    channels,
+                },
+            )
             .await;
     }
 
@@ -247,10 +245,7 @@ impl LongPollingServiceContext {
         );
 
         self.session_removed
-            .call(SessionRemovedArgs {
-                context: Arc::clone(self),
-                client_id,
-            })
+            .call(self, SessionRemovedArgs { client_id })
             .await;
     }
 

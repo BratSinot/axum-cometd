@@ -166,7 +166,7 @@ impl LongPollingServiceContextBuilder {
     #[must_use]
     pub fn session_added<F>(self, callback: F) -> Self
     where
-        F: Fn(SessionAddedArgs) + Send + Sync + 'static,
+        F: Fn(&Arc<LongPollingServiceContext>, SessionAddedArgs) + Send + Sync + 'static,
     {
         Self {
             session_added: Callback::new_sync(callback),
@@ -179,7 +179,7 @@ impl LongPollingServiceContextBuilder {
     #[must_use]
     pub fn async_session_added<F, Fut>(self, callback: F) -> Self
     where
-        F: Fn(SessionAddedArgs) -> Fut + Sync + Send + 'static,
+        F: Fn(&Arc<LongPollingServiceContext>, SessionAddedArgs) -> Fut + Sync + Send + 'static,
         Fut: Future<Output = ()> + Sync + Send + 'static,
     {
         Self {
@@ -193,7 +193,7 @@ impl LongPollingServiceContextBuilder {
     #[must_use]
     pub fn subscribe_added<F>(self, callback: F) -> Self
     where
-        F: Fn(SubscribeArgs) + Send + Sync + 'static,
+        F: Fn(&Arc<LongPollingServiceContext>, SubscribeArgs) + Send + Sync + 'static,
     {
         Self {
             subscribe_added: Callback::new_sync(callback),
@@ -206,7 +206,7 @@ impl LongPollingServiceContextBuilder {
     #[must_use]
     pub fn async_subscribe_added<F, Fut>(self, callback: F) -> Self
     where
-        F: Fn(SubscribeArgs) -> Fut + Sync + Send + 'static,
+        F: Fn(&Arc<LongPollingServiceContext>, SubscribeArgs) -> Fut + Sync + Send + 'static,
         Fut: Future<Output = ()> + Sync + Send + 'static,
     {
         Self {
@@ -220,7 +220,7 @@ impl LongPollingServiceContextBuilder {
     #[must_use]
     pub fn session_removed<F>(self, callback: F) -> Self
     where
-        F: Fn(SessionRemovedArgs) + Send + Sync + 'static,
+        F: Fn(&Arc<LongPollingServiceContext>, SessionRemovedArgs) + Send + Sync + 'static,
     {
         Self {
             session_removed: Callback::new_sync(callback),
@@ -233,7 +233,7 @@ impl LongPollingServiceContextBuilder {
     #[must_use]
     pub fn async_session_removed<F, Fut>(self, callback: F) -> Self
     where
-        F: Fn(SessionRemovedArgs) -> Fut + Sync + Send + 'static,
+        F: Fn(&Arc<LongPollingServiceContext>, SessionRemovedArgs) -> Fut + Sync + Send + 'static,
         Fut: Future<Output = ()> + Sync + Send + 'static,
     {
         Self {

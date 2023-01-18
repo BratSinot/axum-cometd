@@ -1,8 +1,10 @@
+use crate::LongPollingServiceContext;
 use core::{
     fmt::{Debug, Formatter},
     future::Future,
     pin::Pin,
 };
+use std::sync::Arc;
 
 type BoxedFuture = Pin<Box<dyn Future<Output = ()> + Send + Sync + 'static>>;
 
@@ -10,8 +12,8 @@ type BoxedFuture = Pin<Box<dyn Future<Output = ()> + Send + Sync + 'static>>;
 pub(crate) enum Callback<T> {
     #[default]
     Empty,
-    Sync(Box<dyn Fn(T) + Send + Sync + 'static>),
-    Async(Box<dyn Fn(T) -> BoxedFuture + Send + Sync + 'static>),
+    Sync(Box<dyn Fn(&Arc<LongPollingServiceContext>, T) + Send + Sync + 'static>),
+    Async(Box<dyn Fn(&Arc<LongPollingServiceContext>, T) -> BoxedFuture + Send + Sync + 'static>),
 }
 
 impl<T> Debug for Callback<T> {
@@ -30,7 +32,7 @@ impl<T> Callback<T> {
     #[inline(always)]
     pub(crate) fn new_sync<F>(callback: F) -> Self
     where
-        F: Fn(T) + Send + Sync + 'static,
+        F: Fn(&Arc<LongPollingServiceContext>, T) + Send + Sync + 'static,
     {
         Self::Sync(Box::new(callback))
     }
@@ -39,20 +41,22 @@ impl<T> Callback<T> {
     pub(crate) fn new_async<F, Fut>(callback: F) -> Self
     where
         T: 'static,
-        F: Fn(T) -> Fut + Sync + Send + 'static,
+        F: Fn(&Arc<LongPollingServiceContext>, T) -> Fut + Sync + Send + 'static,
         Fut: Future<Output = ()> + Sync + Send + 'static,
     {
-        Self::Async(Box::new(move |arg| Box::pin(callback(arg))))
+        Self::Async(Box::new(move |context, arg| {
+            Box::pin(callback(context, arg))
+        }))
     }
 
-    pub(crate) async fn call(&self, argument: T)
+    pub(crate) async fn call(&self, context: &Arc<LongPollingServiceContext>, argument: T)
     where
         T: Send + Sync,
     {
         match *self {
             Callback::Empty => {}
-            Callback::Sync(ref func) => func(argument),
-            Callback::Async(ref afunc) => afunc(argument).await,
+            Callback::Sync(ref func) => func(context, argument),
+            Callback::Async(ref afunc) => afunc(context, argument).await,
         }
     }
 }

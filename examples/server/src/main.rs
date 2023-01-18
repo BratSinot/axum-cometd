@@ -40,15 +40,18 @@ async fn main() {
         .subscription_channel_capacity(500)
         .subscription_storage_capacity(10_000)
         .async_session_added(
-            |SessionAddedArgs {
+            |_context,
+             SessionAddedArgs {
                  client_id, headers, ..
              }| async move {
                 tracing::info!("Got new session {client_id}: `{headers:?}.");
             },
         )
-        .async_session_removed(|SessionRemovedArgs { client_id, .. }| async move {
-            tracing::info!("Removed session {client_id}.");
-        })
+        .async_session_removed(
+            |_context, SessionRemovedArgs { client_id, .. }| async move {
+                tracing::info!("Removed session {client_id}.");
+            },
+        )
         .build();
     let service = Router::new()
         .nest(
