@@ -68,10 +68,9 @@ async fn test_callbacks() {
         .subscription_channel_capacity(10)
         .async_session_added({
             let client_id_check = client_id_check.clone();
-            move |SessionAddedArgs {
-                      context, client_id, ..
-                  }| {
+            move |context, SessionAddedArgs { client_id, .. }| {
                 let client_id_check = client_id_check.clone();
+                let context = Arc::clone(context);
                 async move {
                     *client_id_check.lock().await = client_id.to_string();
                     tokio::spawn(async move {
@@ -82,7 +81,7 @@ async fn test_callbacks() {
         })
         .async_session_removed({
             let removed_client_id = removed_client_id.clone();
-            move |SessionRemovedArgs { client_id, .. }| {
+            move |_context, SessionRemovedArgs { client_id, .. }| {
                 let removed_client_id = removed_client_id.clone();
                 async move {
                     *removed_client_id.lock().await = client_id.to_string();
