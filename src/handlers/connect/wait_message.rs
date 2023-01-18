@@ -2,7 +2,7 @@ use crate::{
     error::HandlerResult,
     messages::{Advice, Message, SubscriptionMessage},
     types::ClientReceiverError,
-    LongPollingServiceContext,
+    CookieJarExt, LongPollingServiceContext,
 };
 use axum::http::StatusCode;
 use axum_extra::extract::CookieJar;
@@ -25,9 +25,10 @@ pub(super) async fn wait_client_message_handle(
     let session_unknown =
         || Message::session_unknown(id.clone(), channel.clone(), Some(Advice::handshake()));
 
+    let cookie_id = jar.get_cookie_id().ok_or_else(session_unknown)?;
     let client_id = client_id.ok_or_else(session_unknown)?;
     context
-        .check_client(&jar, &client_id)
+        .check_client(cookie_id, &client_id)
         .await
         .ok_or_else(session_unknown)?;
 

@@ -3,6 +3,8 @@ use core::fmt::{Debug, Display, Formatter};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+pub(crate) const ZERO_ID: Id = Id([0u32; 5]);
+
 #[derive(Clone, Copy, Hash, Eq, PartialEq)]
 pub(crate) struct Id([u32; 5]);
 

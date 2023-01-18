@@ -1,4 +1,7 @@
-use crate::{error::HandlerResult, messages::Message, CheckExt, LongPollingServiceContext};
+use crate::{
+    error::HandlerResult, messages::Message, CheckExt, CookieJarExt, LongPollingServiceContext,
+    ZERO_CLIENT_ID,
+};
 use axum::{
     extract::State,
     http::{HeaderMap, StatusCode},
@@ -13,7 +16,12 @@ pub(crate) async fn subscribe(
     jar: CookieJar,
     Json([message]): Json<[Message; 1]>,
 ) -> HandlerResult<Json<[Message; 1]>> {
-    tracing::info!("Got subscribe request: `{message:?}`.");
+    tracing::info!(
+        channel = "/meta/subscribe",
+        request_id = message.id.as_deref().unwrap_or("empty"),
+        client_id = %message.client_id.unwrap_or(ZERO_CLIENT_ID),
+        "Got subscribe request: `{message:?}`."
+    );
 
     let Message {
         id,
@@ -27,9 +35,10 @@ pub(crate) async fn subscribe(
 
     channel.check_or("/meta/subscribe", session_unknown)?;
 
+    let cookie_id = jar.get_cookie_id().ok_or_else(session_unknown)?;
     let client_id = client_id.ok_or_else(session_unknown)?;
     context
-        .check_client(&jar, &client_id)
+        .check_client(cookie_id, &client_id)
         .await
         .ok_or_else(session_unknown)?;
 

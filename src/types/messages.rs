@@ -149,3 +149,10 @@ impl From<Message> for Json<[Message; 1]> {
         Json([message])
     }
 }
+
+impl From<Message> for Json<Vec<Message>> {
+    #[inline(always)]
+    fn from(message: Message) -> Self {
+        Json(vec![message])
+    }
+}

@@ -14,7 +14,11 @@ pub(crate) async fn handshake(
     mut jar: CookieJar,
     Json([message]): Json<[Message; 1]>,
 ) -> HandlerResult<(CookieJar, Json<[Message; 1]>)> {
-    tracing::info!("Got handshake request: `{message:?}`.");
+    tracing::info!(
+        channel = "/meta/handshake",
+        request_id = %message.id.as_deref().unwrap_or("empty"),
+        "Got handshake request: `{message:?}`."
+    );
 
     let Message {
         channel,
@@ -47,6 +51,13 @@ pub(crate) async fn handshake(
     let client_id = context.register(headers, cookie_id).await.ok_or_else(|| {
         Message::session_unknown(id.clone(), channel.clone(), Some(Advice::handshake()))
     })?;
+
+    tracing::debug!(
+        channel = "/meta/handshake",
+        request_id = id.as_deref().unwrap_or("empty"),
+        client_id = %client_id,
+        "Got client_id: `{client_id}`."
+    );
 
     Ok((
         jar,

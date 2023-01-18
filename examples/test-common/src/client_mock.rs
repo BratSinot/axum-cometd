@@ -102,7 +102,8 @@ impl ClientMock {
 
         let json_body = response.to_json().await;
         json_body[0]["successful"]
-            .into_bool()
+            .as_bool()
+            .ok_or_else(|| json_body.clone())?
             .then_some(())
             .ok_or(json_body)
     }
@@ -216,20 +217,11 @@ fn build_req(uri: &str, body: JsonValue) -> Request<Body> {
 }
 
 trait JsonValueExt {
-    #[allow(clippy::wrong_self_convention)]
-    fn into_bool(&self) -> bool;
     fn into_string(self) -> String;
     fn into_array(self) -> Vec<JsonValue>;
 }
 
 impl JsonValueExt for JsonValue {
-    fn into_bool(&self) -> bool {
-        match self {
-            JsonValue::Bool(b) => *b,
-            _ => panic!("JsonValue not Bool"),
-        }
-    }
-
     fn into_string(self) -> String {
         match self {
             JsonValue::String(str) => str,

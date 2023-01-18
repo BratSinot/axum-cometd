@@ -6,15 +6,12 @@ pub use {build_router::*, builder::*};
 
 use crate::{
     messages::SubscriptionMessage,
-    types::{
-        Callback, ChannelId, ClientId, ClientReceiver, ClientSender, CookieId, BAYEUX_BROWSER,
-    },
+    types::{Callback, ChannelId, ClientId, ClientReceiver, ClientSender, CookieId},
     utils::{ChannelNameValidator, WildNamesCache},
     SendError, SessionAddedArgs, SessionRemovedArgs, SubscribeArgs,
 };
 use ahash::{AHashMap, AHashSet};
 use axum::http::HeaderMap;
-use axum_extra::extract::{cookie::Cookie, CookieJar};
 use core::{fmt::Debug, ops::Deref, time::Duration};
 use serde::Serialize;
 use serde_json::json;
@@ -110,7 +107,7 @@ impl LongPollingServiceContext {
             if let Some(tx) = read_guard.get(channel).map(Channel::tx) {
                 tx.send(subscription_message.clone()).await?;
             } else {
-                tracing::trace!(
+                tracing::warn!(
                     channel = channel,
                     "No `{channel}` channel was found for message: `{message:?}`."
                 );
@@ -142,7 +139,7 @@ impl LongPollingServiceContext {
 
             Ok(())
         } else {
-            tracing::trace!(
+            tracing::warn!(
                 client_id = %client_id,
                 "No `{client_id}` client was found for message: `{msg:?}`."
             );
@@ -156,7 +153,6 @@ impl LongPollingServiceContext {
         headers: HeaderMap,
         cookie_id: CookieId,
     ) -> Option<ClientId> {
-        #[allow(clippy::option_map_unit_fn)]
         let client_id = {
             let mut client_id_channels_write_guard = self.client_id_senders.write().await;
 
@@ -318,13 +314,11 @@ impl LongPollingServiceContext {
     }
 
     #[inline]
-    pub(crate) async fn check_client(&self, jar: &CookieJar, client_id: &ClientId) -> Option<()> {
-        let cookie_id = jar
-            .get(BAYEUX_BROWSER)
-            .map(Cookie::value)
-            .map(CookieId::parse)
-            .and_then(Result::ok)?;
-
+    pub(crate) async fn check_client(
+        &self,
+        cookie_id: CookieId,
+        client_id: &ClientId,
+    ) -> Option<()> {
         self.client_id_senders
             .read()
             .await
