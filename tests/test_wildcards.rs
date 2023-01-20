@@ -5,7 +5,7 @@ use std::sync::Arc;
 use test_common::ClientMock;
 use tokio::try_join;
 
-fn build_context_and_mock_client() -> (Arc<LongPollingServiceContext>, ClientMock) {
+fn build_context_and_mock_client() -> (Arc<LongPollingServiceContext<()>>, ClientMock) {
     let context = LongPollingServiceContextBuilder::new()
         .timeout_ms(1000)
         .build();

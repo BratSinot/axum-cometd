@@ -5,19 +5,21 @@ use axum::http::HeaderMap;
 #[derive(Debug)]
 #[non_exhaustive]
 #[allow(missing_docs)]
-pub struct SessionAddedArgs {
+pub struct SessionAddedArgs<AdditionalData> {
     pub client_id: ClientId,
     pub headers: HeaderMap,
+    pub data: AdditionalData,
 }
 
 /// Struct used in subscribe callbacks.
 #[derive(Debug)]
 #[non_exhaustive]
 #[allow(missing_docs)]
-pub struct SubscribeArgs {
+pub struct SubscribeArgs<AdditionalData> {
     pub client_id: ClientId,
     pub headers: HeaderMap,
     pub channels: Vec<String>,
+    pub data: AdditionalData,
 }
 
 /// Struct used in sessionRemoved callbacks.

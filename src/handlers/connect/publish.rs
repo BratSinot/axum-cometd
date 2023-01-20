@@ -6,8 +6,8 @@ use axum::http::StatusCode;
 use axum_extra::extract::CookieJar;
 
 #[inline]
-pub(super) async fn publish_handle(
-    context: &LongPollingServiceContext,
+pub(super) async fn publish_handle<AdditionalData>(
+    context: &LongPollingServiceContext<AdditionalData>,
     jar: CookieJar,
     mut messages: Vec<Message>,
 ) -> HandlerResult<Vec<Message>> {

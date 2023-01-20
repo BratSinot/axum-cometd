@@ -11,7 +11,6 @@ use crate::{
     SendError, SessionAddedArgs, SessionRemovedArgs, SubscribeArgs,
 };
 use ahash::{AHashMap, AHashSet};
-use axum::http::HeaderMap;
 use core::{fmt::Debug, ops::Deref, time::Duration};
 use serde::Serialize;
 use serde_json::json;
@@ -20,10 +19,10 @@ use tokio::sync::{mpsc, RwLock};
 
 /// Context for sending messages to channels.
 #[derive(Debug)]
-pub struct LongPollingServiceContext {
-    session_added: Callback<SessionAddedArgs>,
-    subscribe_added: Callback<SubscribeArgs>,
-    session_removed: Callback<SessionRemovedArgs>,
+pub struct LongPollingServiceContext<AdditionalData> {
+    pub(crate) session_added: Callback<AdditionalData, SessionAddedArgs<AdditionalData>>,
+    pub(crate) subscribe_added: Callback<AdditionalData, SubscribeArgs<AdditionalData>>,
+    pub(crate) session_removed: Callback<AdditionalData, SessionRemovedArgs>,
 
     pub(crate) wildnames_cache: WildNamesCache,
     pub(crate) channel_name_validator: ChannelNameValidator,
@@ -50,7 +49,7 @@ impl Channel {
     }
 }
 
-impl LongPollingServiceContext {
+impl<AdditionalData> LongPollingServiceContext<AdditionalData> {
     /// Send message to channel.
     ///
     /// # Example
@@ -63,7 +62,7 @@ impl LongPollingServiceContext {
     ///     }
     ///
     /// # async {
-    ///     let context = axum_cometd::LongPollingServiceContextBuilder::new()
+    ///     let context = axum_cometd::LongPollingServiceContextBuilder::<()>::new()
     ///         .timeout_ms(1000)
     ///         .max_interval_ms(2000)
     ///         .client_channel_capacity(10_000)
@@ -90,7 +89,7 @@ impl LongPollingServiceContext {
     pub async fn send(
         &self,
         channel: &str,
-        message: impl Debug + Serialize + Send,
+        message: impl Debug + Serialize,
     ) -> Result<(), SendError> {
         self.channel_name_validator
             .validate_send_channel_name(channel)
@@ -123,7 +122,7 @@ impl LongPollingServiceContext {
         &self,
         channel: &str,
         client_id: &ClientId,
-        msg: impl Debug + Serialize + Send + Sync,
+        msg: impl Debug + Serialize,
     ) -> Result<(), SendError> {
         self.channel_name_validator
             .validate_send_channel_name(channel)
@@ -148,11 +147,10 @@ impl LongPollingServiceContext {
         }
     }
 
-    pub(crate) async fn register(
-        self: &Arc<Self>,
-        headers: HeaderMap,
-        cookie_id: CookieId,
-    ) -> Option<ClientId> {
+    pub(crate) async fn register(self: &Arc<Self>, cookie_id: CookieId) -> Option<ClientId>
+    where
+        AdditionalData: 'static,
+    {
         let client_id = {
             let mut client_id_channels_write_guard = self.client_id_senders.write().await;
 
@@ -176,10 +174,6 @@ impl LongPollingServiceContext {
             Some(client_id)
         }?;
 
-        self.session_added
-            .call(self, SessionAddedArgs { client_id, headers })
-            .await;
-
         tracing::info!(
             client_id = %client_id,
             "New client was registered with clientId `{client_id}`."
@@ -188,20 +182,18 @@ impl LongPollingServiceContext {
         Some(client_id)
     }
 
-    pub(crate) async fn subscribe(
-        self: &Arc<Self>,
-        client_id: ClientId,
-        headers: HeaderMap,
-        channels: Vec<String>,
-    ) {
+    pub(crate) async fn subscribe(self: &Arc<Self>, client_id: ClientId, channels: &[String])
+    where
+        AdditionalData: 'static,
+    {
         let mut channels_data_write_guard = self.channels_data.write().await;
-        for channel in &channels {
-            match channels_data_write_guard.entry(channel.to_string()) {
+        for channel in channels {
+            match channels_data_write_guard.entry(channel.clone()) {
                 Entry::Occupied(o) => o.into_mut(),
                 Entry::Vacant(v) => {
                     let (tx, rx) = mpsc::channel(self.consts.subscription_channel_capacity);
 
-                    subscription_task::spawn(channel.to_string(), rx, Arc::clone(self));
+                    subscription_task::spawn(channel.clone(), rx, Arc::clone(self));
                     tracing::info!(
                         channel = channel,
                         "New subscription ({channel}) channel was registered."
@@ -219,20 +211,9 @@ impl LongPollingServiceContext {
 
         tracing::info!(
             client_id = %client_id,
-            channels = debug(&channels),
+            channels = debug(channels),
             "Client with clientId `{client_id}` subscribe on `{channels:?}` channels."
         );
-
-        self.subscribe_added
-            .call(
-                self,
-                SubscribeArgs {
-                    client_id,
-                    headers,
-                    channels,
-                },
-            )
-            .await;
     }
 
     // TODO: Spawn task and send unsubscribe command through channel?

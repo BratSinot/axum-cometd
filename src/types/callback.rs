@@ -7,19 +7,24 @@ use core::{
 use std::sync::Arc;
 
 type BoxedFuture = Pin<Box<dyn Future<Output = ()> + Send + Sync + 'static>>;
-type SyncCallback<T> = Box<dyn Fn(&Arc<LongPollingServiceContext>, T) + Send + Sync + 'static>;
-type AsyncCallback<T> =
-    Box<dyn Fn(&Arc<LongPollingServiceContext>, T) -> BoxedFuture + Send + Sync + 'static>;
+type SyncCallback<AdditionalData, T> =
+    Box<dyn Fn(&Arc<LongPollingServiceContext<AdditionalData>>, T) + Send + Sync + 'static>;
+type AsyncCallback<AdditionalData, T> = Box<
+    dyn Fn(&Arc<LongPollingServiceContext<AdditionalData>>, T) -> BoxedFuture
+        + Send
+        + Sync
+        + 'static,
+>;
 
 #[derive(Default)]
-pub(crate) enum Callback<T> {
+pub(crate) enum Callback<AdditionalData, T> {
     #[default]
     Empty,
-    Sync(SyncCallback<T>),
-    Async(AsyncCallback<T>),
+    Sync(SyncCallback<AdditionalData, T>),
+    Async(AsyncCallback<AdditionalData, T>),
 }
 
-impl<T> Debug for Callback<T> {
+impl<AdditionalData, T> Debug for Callback<AdditionalData, T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         let name = match *self {
             Callback::Empty => "Empty",
@@ -31,11 +36,11 @@ impl<T> Debug for Callback<T> {
     }
 }
 
-impl<T> Callback<T> {
+impl<AdditionalData, T> Callback<AdditionalData, T> {
     #[inline(always)]
     pub(crate) fn new_sync<F>(callback: F) -> Self
     where
-        F: Fn(&Arc<LongPollingServiceContext>, T) + Send + Sync + 'static,
+        F: Fn(&Arc<LongPollingServiceContext<AdditionalData>>, T) + Send + Sync + 'static,
     {
         Self::Sync(Box::new(callback))
     }
@@ -44,7 +49,7 @@ impl<T> Callback<T> {
     pub(crate) fn new_async<F, Fut>(callback: F) -> Self
     where
         T: 'static,
-        F: Fn(&Arc<LongPollingServiceContext>, T) -> Fut + Sync + Send + 'static,
+        F: Fn(&Arc<LongPollingServiceContext<AdditionalData>>, T) -> Fut + Sync + Send + 'static,
         Fut: Future<Output = ()> + Sync + Send + 'static,
     {
         Self::Async(Box::new(move |context, arg| {
@@ -52,10 +57,11 @@ impl<T> Callback<T> {
         }))
     }
 
-    pub(crate) async fn call(&self, context: &Arc<LongPollingServiceContext>, argument: T)
-    where
-        T: Send + Sync,
-    {
+    pub(crate) async fn call(
+        &self,
+        context: &Arc<LongPollingServiceContext<AdditionalData>>,
+        argument: T,
+    ) {
         match *self {
             Callback::Empty => {}
             Callback::Sync(ref func) => func(context, argument),

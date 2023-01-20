@@ -5,11 +5,13 @@ use crate::{
 use std::sync::Arc;
 use tokio::sync::mpsc;
 
-pub(crate) fn spawn(
+pub(crate) fn spawn<AdditionalData>(
     channel: String,
     mut rx: mpsc::Receiver<SubscriptionMessage>,
-    inner: Arc<LongPollingServiceContext>,
-) {
+    inner: Arc<LongPollingServiceContext<AdditionalData>>,
+) where
+    AdditionalData: 'static,
+{
     tokio::task::spawn(async move {
         while let Some(msg) = rx.recv().await {
             tracing::debug!(

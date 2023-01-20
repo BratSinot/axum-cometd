@@ -29,14 +29,17 @@ pub(crate) struct Signals {
 
 impl ClientSender {
     #[inline]
-    pub(crate) fn create(
-        context: Arc<LongPollingServiceContext>,
+    pub(crate) fn create<AdditionalData>(
+        context: Arc<LongPollingServiceContext<AdditionalData>>,
         cookie_id: CookieId,
         client_id: ClientId,
         timeout: Duration,
         tx: Sender<SubscriptionMessage>,
         rx: Receiver<SubscriptionMessage>,
-    ) -> Self {
+    ) -> Self
+    where
+        AdditionalData: 'static,
+    {
         let signals = Arc::new(Signals::default());
         let rx = Arc::new(Mutex::new(rx));
 

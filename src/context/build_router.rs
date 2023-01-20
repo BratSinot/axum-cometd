@@ -1,5 +1,5 @@
 use crate::{handlers::*, LongPollingServiceContext};
-use axum::{routing::post, Router};
+use axum::{routing::post, Extension, Router};
 use core::fmt::Debug;
 use std::sync::Arc;
 
@@ -41,8 +41,40 @@ impl RouterBuilder {
     /// # let context = axum_cometd::LongPollingServiceContextBuilder::new().build();
     /// let app = RouterBuilder::new().build(Arc::clone(&context));
     /// ```
+    #[inline(always)]
+    pub fn build(self, context: Arc<LongPollingServiceContext<()>>) -> Router {
+        self.build_with_additional_data(context)
+            .layer(Extension(()))
+    }
+
+    /// Return a `axum::Router`.
+    ///
+    /// # Example
+    /// ```rust
+    /// use std::sync::Arc;
+    /// use axum::Extension;
+    /// use axum_cometd::RouterBuilder;
+    ///
+    /// # let context = axum_cometd::LongPollingServiceContextBuilder::<ContextData>::new().build();
+    /// #[derive(Clone)]
+    /// struct ContextData {
+    ///     server_name: String,
+    /// }
+    ///
+    /// let app = RouterBuilder::new()
+    ///     .build_with_additional_data(Arc::clone(&context))
+    ///     .layer(Extension(ContextData {
+    ///         server_name: std::env::var("SERVER_NAME").unwrap_or_else(|_| "Skalica".to_owned()),
+    ///     }));
+    /// ```
     #[inline]
-    pub fn build(self, context: Arc<LongPollingServiceContext>) -> Router {
+    pub fn build_with_additional_data<AdditionalData>(
+        self,
+        context: Arc<LongPollingServiceContext<AdditionalData>>,
+    ) -> Router
+    where
+        AdditionalData: Clone + Send + Sync + 'static,
+    {
         let Self {
             subscribe_base_path,
             handshake_base_path,

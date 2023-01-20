@@ -6,8 +6,8 @@ use axum::{extract::State, http::StatusCode, Json};
 use axum_extra::extract::CookieJar;
 use std::sync::Arc;
 
-pub(crate) async fn disconnect(
-    State(context): State<Arc<LongPollingServiceContext>>,
+pub(crate) async fn disconnect<AdditionalData>(
+    State(context): State<Arc<LongPollingServiceContext<AdditionalData>>>,
     jar: CookieJar,
     Json([message]): Json<[Message; 1]>,
 ) -> HandlerResult<StatusCode> {
