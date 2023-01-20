@@ -2,18 +2,22 @@ use crate::{
     error::HandlerResult,
     messages::{Advice, Message},
     types::{CookieId, BAYEUX_BROWSER},
-    CheckExt, LongPollingServiceContext,
+    CheckExt, LongPollingServiceContext, SessionAddedArgs,
 };
-use axum::{extract::State, http::HeaderMap, Json};
+use axum::{extract::State, http::HeaderMap, Extension, Json};
 use axum_extra::extract::cookie::{Cookie, CookieJar};
 use std::sync::Arc;
 
-pub(crate) async fn handshake(
-    State(context): State<Arc<LongPollingServiceContext>>,
+pub(crate) async fn handshake<AdditionalData>(
+    State(context): State<Arc<LongPollingServiceContext<AdditionalData>>>,
+    Extension(data): Extension<AdditionalData>,
     headers: HeaderMap,
     mut jar: CookieJar,
     Json([message]): Json<[Message; 1]>,
-) -> HandlerResult<(CookieJar, Json<[Message; 1]>)> {
+) -> HandlerResult<(CookieJar, Json<[Message; 1]>)>
+where
+    AdditionalData: 'static,
+{
     tracing::info!(
         channel = "/meta/handshake",
         request_id = %message.id.as_deref().unwrap_or("empty"),
@@ -48,9 +52,21 @@ pub(crate) async fn handshake(
         cookie_id
     };
 
-    let client_id = context.register(headers, cookie_id).await.ok_or_else(|| {
+    let client_id = context.register(cookie_id).await.ok_or_else(|| {
         Message::session_unknown(id.clone(), channel.clone(), Some(Advice::handshake()))
     })?;
+
+    context
+        .session_added
+        .call(
+            &context,
+            SessionAddedArgs {
+                client_id,
+                headers,
+                data,
+            },
+        )
+        .await;
 
     tracing::debug!(
         channel = "/meta/handshake",

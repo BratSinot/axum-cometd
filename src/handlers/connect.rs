@@ -8,8 +8,8 @@ use publish::*;
 use std::sync::Arc;
 use wait_message::*;
 
-pub(crate) async fn connect(
-    State(context): State<Arc<LongPollingServiceContext>>,
+pub(crate) async fn connect<AdditionalData>(
+    State(context): State<Arc<LongPollingServiceContext<AdditionalData>>>,
     jar: CookieJar,
     Json(messages): Json<Vec<Message>>,
 ) -> HandlerResult<Json<Vec<Message>>> {

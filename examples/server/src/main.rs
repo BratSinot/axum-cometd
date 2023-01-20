@@ -71,7 +71,7 @@ async fn main() {
     handler.await.unwrap().unwrap();
 }
 
-fn spawn_topic(context: Arc<LongPollingServiceContext>, channel: &'static str) {
+fn spawn_topic(context: Arc<LongPollingServiceContext<()>>, channel: &'static str) {
     tokio::task::spawn(async move {
         let mut rng: StdRng = SeedableRng::from_entropy();
         let distribution = Uniform::new(500, 1000);

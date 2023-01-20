@@ -1,21 +1,25 @@
 use crate::{
     error::HandlerResult, messages::Message, CheckExt, CookieJarExt, LongPollingServiceContext,
-    ZERO_CLIENT_ID,
+    SubscribeArgs, ZERO_CLIENT_ID,
 };
 use axum::{
     extract::State,
     http::{HeaderMap, StatusCode},
-    Json,
+    Extension, Json,
 };
 use axum_extra::extract::CookieJar;
 use std::sync::Arc;
 
-pub(crate) async fn subscribe(
-    State(context): State<Arc<LongPollingServiceContext>>,
+pub(crate) async fn subscribe<AdditionalData>(
+    State(context): State<Arc<LongPollingServiceContext<AdditionalData>>>,
+    Extension(data): Extension<AdditionalData>,
     headers: HeaderMap,
     jar: CookieJar,
     Json([message]): Json<[Message; 1]>,
-) -> HandlerResult<Json<[Message; 1]>> {
+) -> HandlerResult<Json<[Message; 1]>>
+where
+    AdditionalData: 'static,
+{
     tracing::info!(
         channel = "/meta/subscribe",
         request_id = message.id.as_deref().unwrap_or("empty"),
@@ -54,8 +58,19 @@ pub(crate) async fn subscribe(
             .check(&true, StatusCode::BAD_REQUEST)
     })?;
 
+    context.subscribe(client_id, &subscription).await;
+
     context
-        .subscribe(client_id, headers, subscription.clone())
+        .subscribe_added
+        .call(
+            &context,
+            SubscribeArgs {
+                client_id,
+                headers,
+                channels: subscription.clone(),
+                data,
+            },
+        )
         .await;
 
     Ok(Json([Message {

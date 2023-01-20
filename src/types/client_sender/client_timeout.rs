@@ -6,12 +6,14 @@ use core::time::Duration;
 use std::sync::Arc;
 use tokio::{select, sync::Notify, time};
 
-pub(super) fn spawn(
-    context: Arc<LongPollingServiceContext>,
+pub(super) fn spawn<AdditionalData>(
+    context: Arc<LongPollingServiceContext<AdditionalData>>,
     client_id: ClientId,
     timeout: Duration,
     signals: Arc<Signals>,
-) {
+) where
+    AdditionalData: 'static,
+{
     tokio::task::spawn(async move {
         let Signals {
             ref stop_signal,

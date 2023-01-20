@@ -12,7 +12,6 @@
     clippy::if_let_mutex,
     clippy::std_instead_of_core,
     clippy::missing_const_for_fn,
-    clippy::future_not_send,
     clippy::str_to_string,
     clippy::clone_on_ref_ptr,
     clippy::panic,
