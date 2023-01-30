@@ -1,6 +1,6 @@
 use crate::{
-    error::HandlerResult, messages::Message, CheckExt, CookieJarExt, LongPollingServiceContext,
-    SubscribeArgs, ZERO_CLIENT_ID,
+    error::HandlerResult, messages::Message, types::Event, CheckExt, CookieJarExt,
+    LongPollingServiceContext, ZERO_CLIENT_ID,
 };
 use axum::{
     extract::State,
@@ -18,7 +18,7 @@ pub(crate) async fn subscribe<AdditionalData>(
     Json([message]): Json<[Message; 1]>,
 ) -> HandlerResult<Json<[Message; 1]>>
 where
-    AdditionalData: 'static,
+    AdditionalData: Send + Sync + 'static,
 {
     tracing::info!(
         channel = "/meta/subscribe",
@@ -60,17 +60,14 @@ where
 
     context.subscribe(client_id, &subscription).await;
 
-    context
-        .subscribe_added
-        .call(
-            &context,
-            SubscribeArgs {
-                client_id,
-                headers,
-                channels: subscription.clone(),
-                data,
-            },
-        )
+    let _ = context
+        .tx
+        .broadcast(Arc::new(Event::SubscribeArgs {
+            client_id,
+            headers,
+            channels: subscription.clone(),
+            data,
+        }))
         .await;
 
     Ok(Json([Message {

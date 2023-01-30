@@ -1,8 +1,6 @@
-use crate::{
-    types::Callback, LongPollingServiceContext, SessionAddedArgs, SessionRemovedArgs, SubscribeArgs,
-};
+use crate::LongPollingServiceContext;
 use ahash::AHashMap;
-use core::future::Future;
+use async_broadcast::broadcast;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
@@ -14,25 +12,21 @@ const DEFAULT_STORAGE_CAPACITY: usize = 10_000;
 
 /// A builder to construct `LongPoolingServiceContext`.
 #[derive(Debug)]
-pub struct LongPollingServiceContextBuilder<AdditionalData = ()> {
+pub struct LongPollingServiceContextBuilder {
+    events_channel_capacity: usize,
     subscriptions_storage_capacity: usize,
     client_ids_storage_capacity: usize,
     consts: LongPollingServiceContextConsts,
-    session_added: Callback<AdditionalData, SessionAddedArgs<AdditionalData>>,
-    subscribe_added: Callback<AdditionalData, SubscribeArgs<AdditionalData>>,
-    session_removed: Callback<AdditionalData, SessionRemovedArgs>,
 }
 
-impl<AdditionalData> Default for LongPollingServiceContextBuilder<AdditionalData> {
+impl Default for LongPollingServiceContextBuilder {
     #[inline(always)]
     fn default() -> Self {
         Self {
+            events_channel_capacity: DEFAULT_CHANNEL_CAPACITY,
             subscriptions_storage_capacity: DEFAULT_STORAGE_CAPACITY,
             client_ids_storage_capacity: DEFAULT_STORAGE_CAPACITY,
             consts: Default::default(),
-            session_added: Callback::Empty,
-            subscribe_added: Callback::Empty,
-            session_removed: Callback::Empty,
         }
     }
 }
@@ -59,7 +53,7 @@ impl Default for LongPollingServiceContextConsts {
     }
 }
 
-impl<AdditionalData> LongPollingServiceContextBuilder<AdditionalData> {
+impl LongPollingServiceContextBuilder {
     /// Construct a new `LongPoolingServiceContextBuilder`.
     #[inline(always)]
     pub fn new() -> Self {
@@ -72,23 +66,23 @@ impl<AdditionalData> LongPollingServiceContextBuilder<AdditionalData> {
     /// ```rust
     /// use axum_cometd::LongPollingServiceContextBuilder;
     ///
-    /// let context = LongPollingServiceContextBuilder::<()>::new().build();
+    /// let context = LongPollingServiceContextBuilder::new().build::<()>();
     /// ```
     #[inline(always)]
-    pub fn build(self) -> Arc<LongPollingServiceContext<AdditionalData>> {
+    pub fn build<AdditionalData>(self) -> Arc<LongPollingServiceContext<AdditionalData>> {
         let Self {
+            events_channel_capacity,
             subscriptions_storage_capacity,
             client_ids_storage_capacity,
             consts,
-            session_added,
-            subscribe_added,
-            session_removed,
         } = self;
 
+        let (tx, mut rx) = broadcast(events_channel_capacity);
+        rx.set_await_active(false);
+
         Arc::new(LongPollingServiceContext {
-            session_added,
-            subscribe_added,
-            session_removed,
+            tx,
+            inactive_rx: rx.deactivate(),
             wildnames_cache: Default::default(),
             channel_name_validator: Default::default(),
             consts,
@@ -129,6 +123,14 @@ impl<AdditionalData> LongPollingServiceContextBuilder<AdditionalData> {
         self
     }
 
+    /// Set capacity of event channel.
+    #[inline(always)]
+    #[must_use]
+    pub const fn events_channel_capacity(mut self, capacity: usize) -> Self {
+        self.events_channel_capacity = capacity;
+        self
+    }
+
     /// Set capacity of internal client channels.
     #[inline(always)]
     #[must_use]
@@ -159,112 +161,5 @@ impl<AdditionalData> LongPollingServiceContextBuilder<AdditionalData> {
     pub const fn subscription_storage_capacity(mut self, capacity: usize) -> Self {
         self.subscriptions_storage_capacity = capacity;
         self
-    }
-
-    /// Set sync callback on new session creation.
-    #[inline(always)]
-    #[must_use]
-    pub fn session_added<F>(self, callback: F) -> Self
-    where
-        F: Fn(&Arc<LongPollingServiceContext<AdditionalData>>, SessionAddedArgs<AdditionalData>)
-            + Send
-            + Sync
-            + 'static,
-    {
-        Self {
-            session_added: Callback::new_sync(callback),
-            ..self
-        }
-    }
-
-    /// Set async callback on new session creation.
-    #[inline(always)]
-    #[must_use]
-    pub fn async_session_added<F, Fut>(self, callback: F) -> Self
-    where
-        AdditionalData: 'static,
-        F: Fn(
-                &Arc<LongPollingServiceContext<AdditionalData>>,
-                SessionAddedArgs<AdditionalData>,
-            ) -> Fut
-            + Sync
-            + Send
-            + 'static,
-        Fut: Future<Output = ()> + Sync + Send + 'static,
-    {
-        Self {
-            session_added: Callback::new_async(callback),
-            ..self
-        }
-    }
-
-    /// Set sync callback on new subscribe creation.
-    #[inline(always)]
-    #[must_use]
-    pub fn subscribe_added<F>(self, callback: F) -> Self
-    where
-        F: Fn(&Arc<LongPollingServiceContext<AdditionalData>>, SubscribeArgs<AdditionalData>)
-            + Send
-            + Sync
-            + 'static,
-    {
-        Self {
-            subscribe_added: Callback::new_sync(callback),
-            ..self
-        }
-    }
-
-    /// Set async callback on new subscribe creation.
-    #[inline(always)]
-    #[must_use]
-    pub fn async_subscribe_added<F, Fut>(self, callback: F) -> Self
-    where
-        AdditionalData: 'static,
-        F: Fn(
-                &Arc<LongPollingServiceContext<AdditionalData>>,
-                SubscribeArgs<AdditionalData>,
-            ) -> Fut
-            + Sync
-            + Send
-            + 'static,
-        Fut: Future<Output = ()> + Sync + Send + 'static,
-    {
-        Self {
-            subscribe_added: Callback::new_async(callback),
-            ..self
-        }
-    }
-
-    /// Set sync callback on new session creation.
-    #[inline(always)]
-    #[must_use]
-    pub fn session_removed<F>(self, callback: F) -> Self
-    where
-        F: Fn(&Arc<LongPollingServiceContext<AdditionalData>>, SessionRemovedArgs)
-            + Send
-            + Sync
-            + 'static,
-    {
-        Self {
-            session_removed: Callback::new_sync(callback),
-            ..self
-        }
-    }
-
-    /// Set async callback on new session creation.
-    #[inline(always)]
-    #[must_use]
-    pub fn async_session_removed<F, Fut>(self, callback: F) -> Self
-    where
-        F: Fn(&Arc<LongPollingServiceContext<AdditionalData>>, SessionRemovedArgs) -> Fut
-            + Sync
-            + Send
-            + 'static,
-        Fut: Future<Output = ()> + Sync + Send + 'static,
-    {
-        Self {
-            session_removed: Callback::new_async(callback),
-            ..self
-        }
     }
 }

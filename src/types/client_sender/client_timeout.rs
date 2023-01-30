@@ -12,7 +12,7 @@ pub(super) fn spawn<AdditionalData>(
     timeout: Duration,
     signals: Arc<Signals>,
 ) where
-    AdditionalData: 'static,
+    AdditionalData: Send + Sync + 'static,
 {
     tokio::task::spawn(async move {
         let Signals {

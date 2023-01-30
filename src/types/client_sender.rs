@@ -38,7 +38,7 @@ impl ClientSender {
         rx: Receiver<SubscriptionMessage>,
     ) -> Self
     where
-        AdditionalData: 'static,
+        AdditionalData: Send + Sync + 'static,
     {
         let signals = Arc::new(Signals::default());
         let rx = Arc::new(Mutex::new(rx));

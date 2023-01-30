@@ -55,7 +55,7 @@ impl RouterBuilder {
     /// use axum::Extension;
     /// use axum_cometd::RouterBuilder;
     ///
-    /// # let context = axum_cometd::LongPollingServiceContextBuilder::<ContextData>::new().build();
+    /// # let context = axum_cometd::LongPollingServiceContextBuilder::new().build::<ContextData>();
     /// #[derive(Clone)]
     /// struct ContextData {
     ///     server_name: String,

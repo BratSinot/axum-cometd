@@ -6,11 +6,12 @@ pub use {build_router::*, builder::*};
 
 use crate::{
     messages::SubscriptionMessage,
-    types::{Callback, ChannelId, ClientId, ClientReceiver, ClientSender, CookieId},
+    types::{ChannelId, ClientId, ClientReceiver, ClientSender, CookieId},
     utils::{ChannelNameValidator, WildNamesCache},
-    SendError, SessionAddedArgs, SessionRemovedArgs, SubscribeArgs,
+    Event, SendError,
 };
 use ahash::{AHashMap, AHashSet};
+use async_broadcast::{InactiveReceiver, Receiver, Sender};
 use core::{fmt::Debug, ops::Deref, time::Duration};
 use serde::Serialize;
 use serde_json::json;
@@ -20,9 +21,8 @@ use tokio::sync::{mpsc, RwLock};
 /// Context for sending messages to channels.
 #[derive(Debug)]
 pub struct LongPollingServiceContext<AdditionalData> {
-    pub(crate) session_added: Callback<AdditionalData, SessionAddedArgs<AdditionalData>>,
-    pub(crate) subscribe_added: Callback<AdditionalData, SubscribeArgs<AdditionalData>>,
-    pub(crate) session_removed: Callback<AdditionalData, SessionRemovedArgs>,
+    pub(crate) tx: Sender<Arc<Event<AdditionalData>>>,
+    pub(crate) inactive_rx: InactiveReceiver<Arc<Event<AdditionalData>>>,
 
     pub(crate) wildnames_cache: WildNamesCache,
     pub(crate) channel_name_validator: ChannelNameValidator,
@@ -50,10 +50,27 @@ impl Channel {
 }
 
 impl<AdditionalData> LongPollingServiceContext<AdditionalData> {
+    /// Get new events receiver.
+    ///
+    /// # Example
+    /// ```rust
+    /// # async {
+    /// # let context = axum_cometd::LongPollingServiceContextBuilder::new().build::<()>();
+    ///     let mut rx = context.rx();
+    ///     
+    ///     while let Ok(event) = rx.recv().await {
+    ///         println!("Got event: `{event:?}`");
+    ///     }
+    /// # };
+    /// ```
+    pub fn rx(&self) -> Receiver<Arc<Event<AdditionalData>>> {
+        self.inactive_rx.activate_cloned()
+    }
+
     /// Send message to channel.
     ///
     /// # Example
-    /// ```rust    ///
+    /// ```rust
     ///     #[derive(Debug, Clone, serde::Serialize)]
     ///     struct Data<'a> {
     ///         msg: std::borrow::Cow<'a, str>,
@@ -62,12 +79,12 @@ impl<AdditionalData> LongPollingServiceContext<AdditionalData> {
     ///     }
     ///
     /// # async {
-    ///     let context = axum_cometd::LongPollingServiceContextBuilder::<()>::new()
+    ///     let context = axum_cometd::LongPollingServiceContextBuilder::new()
     ///         .timeout_ms(1000)
     ///         .max_interval_ms(2000)
     ///         .client_channel_capacity(10_000)
     ///         .subscription_channel_capacity(20_000)
-    ///         .build();
+    ///         .build::<()>();
     ///
     ///     loop {
     ///         context
@@ -149,7 +166,7 @@ impl<AdditionalData> LongPollingServiceContext<AdditionalData> {
 
     pub(crate) async fn register(self: &Arc<Self>, cookie_id: CookieId) -> Option<ClientId>
     where
-        AdditionalData: 'static,
+        AdditionalData: Send + Sync + 'static,
     {
         let client_id = {
             let mut client_id_channels_write_guard = self.client_id_senders.write().await;
@@ -184,7 +201,7 @@ impl<AdditionalData> LongPollingServiceContext<AdditionalData> {
 
     pub(crate) async fn subscribe(self: &Arc<Self>, client_id: ClientId, channels: &[String])
     where
-        AdditionalData: 'static,
+        AdditionalData: Send + Sync + 'static,
     {
         let mut channels_data_write_guard = self.channels_data.write().await;
         for channel in channels {
@@ -225,8 +242,9 @@ impl<AdditionalData> LongPollingServiceContext<AdditionalData> {
             self.remove_client_tx(&client_id),
         );
 
-        self.session_removed
-            .call(self, SessionRemovedArgs { client_id })
+        let _ = self
+            .tx
+            .broadcast(Arc::new(Event::SessionRemovedArgs { client_id }))
             .await;
     }
 
