@@ -1,8 +1,8 @@
 use crate::{
     error::HandlerResult,
     messages::{Advice, Message},
-    types::{CookieId, BAYEUX_BROWSER},
-    CheckExt, LongPollingServiceContext, SessionAddedArgs,
+    types::{CookieId, Event, BAYEUX_BROWSER},
+    CheckExt, LongPollingServiceContext,
 };
 use axum::{extract::State, http::HeaderMap, Extension, Json};
 use axum_extra::extract::cookie::{Cookie, CookieJar};
@@ -16,7 +16,7 @@ pub(crate) async fn handshake<AdditionalData>(
     Json([message]): Json<[Message; 1]>,
 ) -> HandlerResult<(CookieJar, Json<[Message; 1]>)>
 where
-    AdditionalData: 'static,
+    AdditionalData: Send + Sync + 'static,
 {
     tracing::info!(
         channel = "/meta/handshake",
@@ -56,16 +56,13 @@ where
         Message::session_unknown(id.clone(), channel.clone(), Some(Advice::handshake()))
     })?;
 
-    context
-        .session_added
-        .call(
-            &context,
-            SessionAddedArgs {
-                client_id,
-                headers,
-                data,
-            },
-        )
+    let _ = context
+        .tx
+        .broadcast(Arc::new(Event::SessionAddedArgs {
+            client_id,
+            headers,
+            data,
+        }))
         .await;
 
     tracing::debug!(

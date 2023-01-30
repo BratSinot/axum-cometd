@@ -10,7 +10,7 @@ pub(crate) fn spawn<AdditionalData>(
     mut rx: mpsc::Receiver<SubscriptionMessage>,
     inner: Arc<LongPollingServiceContext<AdditionalData>>,
 ) where
-    AdditionalData: 'static,
+    AdditionalData: Send + Sync + 'static,
 {
     tokio::task::spawn(async move {
         while let Some(msg) = rx.recv().await {
