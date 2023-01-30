@@ -1,11 +1,11 @@
+use async_broadcast::Receiver;
 use axum::Router;
-use axum_cometd::{
-    LongPollingServiceContextBuilder, RouterBuilder, SessionAddedArgs, SessionRemovedArgs,
-};
+use axum_cometd::{Event, LongPollingServiceContextBuilder, RouterBuilder};
 use serde_json::json;
 use std::{sync::Arc, time::Duration};
 use test_common::*;
-use tokio::{sync::Mutex, try_join};
+use tokio::time::timeout;
+use tokio::try_join;
 
 #[tokio::test]
 async fn test_different_paths() {
@@ -57,47 +57,30 @@ async fn test_different_paths() {
 }
 
 #[tokio::test]
-async fn test_callbacks() {
-    let client_id_check = Arc::new(Mutex::new(String::new()));
-    let removed_client_id = Arc::new(Mutex::new(String::new()));
-
+async fn test_event_channel() {
     let context = LongPollingServiceContextBuilder::new()
         .timeout_ms(5000)
         .max_interval_ms(60_000)
         .client_channel_capacity(10)
         .subscription_channel_capacity(10)
-        .async_session_added({
-            let client_id_check = client_id_check.clone();
-            move |context, SessionAddedArgs { client_id, .. }| {
-                let client_id_check = client_id_check.clone();
-                let context = Arc::clone(context);
-                async move {
-                    *client_id_check.lock().await = client_id.to_string();
-                    tokio::spawn(async move {
-                        context.unsubscribe(client_id).await;
-                    });
-                }
-            }
-        })
-        .async_session_removed({
-            let removed_client_id = removed_client_id.clone();
-            move |_context, SessionRemovedArgs { client_id, .. }| {
-                let removed_client_id = removed_client_id.clone();
-                async move {
-                    *removed_client_id.lock().await = client_id.to_string();
-                }
-            }
-        })
         .build();
+    let mut rx = context.rx();
 
     let router = RouterBuilder::new().build(Arc::clone(&context));
 
     let mut mock_client = ClientMock::create("", "/", "", "", router);
     mock_client.handshake().await;
-    let client_id = mock_client.client_id().unwrap();
+    let orig_client_id = mock_client.client_id().unwrap();
 
     tokio::time::sleep(Duration::from_secs(1)).await;
 
-    assert_eq!(*client_id_check.lock().await, client_id);
-    assert_eq!(*removed_client_id.lock().await, client_id);
+    async fn recv(rx: &mut Receiver<Arc<Event<()>>>) -> Arc<Event<()>> {
+        timeout(Duration::from_secs(5), rx.recv())
+            .await
+            .unwrap()
+            .unwrap()
+    }
+
+    matches!(recv(&mut rx).await.as_ref(), Event::SessionAddedArgs{ client_id, .. } if client_id.to_string() == orig_client_id && context.unsubscribe(*client_id).await == ());
+    matches!(recv(&mut rx).await.as_ref(), Event::SessionRemovedArgs{ client_id, .. } if client_id.to_string() == orig_client_id);
 }

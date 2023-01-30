@@ -55,13 +55,13 @@ impl<AdditionalData> LongPollingServiceContext<AdditionalData> {
     /// # Example
     /// ```rust
     /// # async {
-    /// # let context = axum_cometd::LongPollingServiceContextBuilder::<()>::new().build();
+    /// # let context = axum_cometd::LongPollingServiceContextBuilder::new().build::<()>();
     ///     let mut rx = context.rx();
     ///     
-    ///     while let Some(event) = rx.recv().await {
+    ///     while let Ok(event) = rx.recv().await {
     ///         println!("Got event: `{event:?}`");
     ///     }
-    /// # }
+    /// # };
     /// ```
     pub fn rx(&self) -> Receiver<Arc<Event<AdditionalData>>> {
         self.inactive_rx.activate_cloned()
@@ -79,12 +79,12 @@ impl<AdditionalData> LongPollingServiceContext<AdditionalData> {
     ///     }
     ///
     /// # async {
-    ///     let context = axum_cometd::LongPollingServiceContextBuilder::<()>::new()
+    ///     let context = axum_cometd::LongPollingServiceContextBuilder::new()
     ///         .timeout_ms(1000)
     ///         .max_interval_ms(2000)
     ///         .client_channel_capacity(10_000)
     ///         .subscription_channel_capacity(20_000)
-    ///         .build();
+    ///         .build::<()>();
     ///
     ///     loop {
     ///         context
