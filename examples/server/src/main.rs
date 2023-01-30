@@ -1,7 +1,6 @@
 use axum::{Router, Server};
 use axum_cometd::{
-    LongPollingServiceContext, LongPollingServiceContextBuilder, RouterBuilder, SessionAddedArgs,
-    SessionRemovedArgs,
+    Event, LongPollingServiceContext, LongPollingServiceContextBuilder, RouterBuilder,
 };
 use rand::{distributions::Uniform, rngs::StdRng, Rng, SeedableRng};
 use std::{
@@ -39,20 +38,27 @@ async fn main() {
         .client_storage_capacity(10_000)
         .subscription_channel_capacity(500)
         .subscription_storage_capacity(10_000)
-        .async_session_added(
-            |_context,
-             SessionAddedArgs {
-                 client_id, headers, ..
-             }| async move {
-                tracing::info!("Got new session {client_id}: `{headers:?}.");
-            },
-        )
-        .async_session_removed(
-            |_context, SessionRemovedArgs { client_id, .. }| async move {
-                tracing::info!("Removed session {client_id}.");
-            },
-        )
         .build();
+
+    let mut rx = context.rx();
+    tokio::task::spawn(async move {
+        while let Ok(event) = rx.recv().await {
+            match *event {
+                Event::SessionAddedArgs {
+                    client_id,
+                    ref headers,
+                    ..
+                } => {
+                    tracing::info!("Got new session {client_id}: `{headers:?}.");
+                }
+                Event::SessionRemovedArgs { client_id, .. } => {
+                    tracing::info!("Removed session {client_id}.");
+                }
+                _ => {}
+            }
+        }
+    });
+
     let service = Router::new()
         .nest(
             "/notifications",
