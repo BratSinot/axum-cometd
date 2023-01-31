@@ -12,7 +12,7 @@ fn build_mock_client() -> ClientMock {
         .timeout_ms(TIMEOUT_MS)
         .max_interval_ms(MAX_INTERVAL_MS)
         .build();
-    let router = RouterBuilder::new().build(Arc::clone(&context));
+    let router = RouterBuilder::new().build::<()>(Arc::clone(&context));
 
     ClientMock::create("", "/", "", "", router)
 }

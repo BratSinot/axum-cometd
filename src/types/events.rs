@@ -1,23 +1,24 @@
 use crate::ClientId;
 use axum::http::HeaderMap;
 
-#[non_exhaustive]
 #[allow(missing_docs)]
 #[derive(Debug)]
-pub enum Event<AdditionalData> {
+pub enum Event<AdditionalData, CustomData> {
     /// Struct used in sessionAdded callbacks.
-    SessionAddedArgs {
+    SessionAdded {
         client_id: ClientId,
         headers: HeaderMap,
         data: AdditionalData,
     },
     /// Struct used in subscribe callbacks.
-    SubscribeArgs {
+    Subscribe {
         client_id: ClientId,
         headers: HeaderMap,
         channels: Vec<String>,
         data: AdditionalData,
     },
     /// Struct used in sessionRemoved callbacks.
-    SessionRemovedArgs { client_id: ClientId },
+    SessionRemoved { client_id: ClientId },
+    /// Some custom data to send.
+    CustomData(CustomData),
 }

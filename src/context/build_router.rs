@@ -39,10 +39,16 @@ impl RouterBuilder {
     /// use axum_cometd::RouterBuilder;
     ///
     /// # let context = axum_cometd::LongPollingServiceContextBuilder::new().build();
-    /// let app = RouterBuilder::new().build(Arc::clone(&context));
+    /// let app = RouterBuilder::new().build::<()>(Arc::clone(&context));
     /// ```
     #[inline(always)]
-    pub fn build(self, context: Arc<LongPollingServiceContext<()>>) -> Router {
+    pub fn build<CustomData>(
+        self,
+        context: Arc<LongPollingServiceContext<(), CustomData>>,
+    ) -> Router
+    where
+        CustomData: Send + Sync + 'static,
+    {
         self.build_with_additional_data(context)
             .layer(Extension(()))
     }
@@ -55,7 +61,7 @@ impl RouterBuilder {
     /// use axum::Extension;
     /// use axum_cometd::RouterBuilder;
     ///
-    /// # let context = axum_cometd::LongPollingServiceContextBuilder::new().build::<ContextData>();
+    /// # let context = axum_cometd::LongPollingServiceContextBuilder::new().build::<ContextData, ()>();
     /// #[derive(Clone)]
     /// struct ContextData {
     ///     server_name: String,
@@ -68,12 +74,13 @@ impl RouterBuilder {
     ///     }));
     /// ```
     #[inline]
-    pub fn build_with_additional_data<AdditionalData>(
+    pub fn build_with_additional_data<AdditionalData, CustomData>(
         self,
-        context: Arc<LongPollingServiceContext<AdditionalData>>,
+        context: Arc<LongPollingServiceContext<AdditionalData, CustomData>>,
     ) -> Router
     where
         AdditionalData: Clone + Send + Sync + 'static,
+        CustomData: Send + Sync + 'static,
     {
         let Self {
             subscribe_base_path,
@@ -104,7 +111,7 @@ impl RouterBuilder {
     /// let app = RouterBuilder::new()
     ///     // Ex: `/` -> `/bar`
     ///     .subscribe_base_path("/bar")
-    ///     .build(Arc::clone(&context));
+    ///     .build::<()>(Arc::clone(&context));
     /// ```
     #[inline(always)]
     #[must_use]
@@ -126,7 +133,7 @@ impl RouterBuilder {
     /// let app = RouterBuilder::new()
     ///     // Ex: `/handshake` -> `/bar/handshake`
     ///     .handshake_base_path("/bar")
-    ///     .build(Arc::clone(&context));
+    ///     .build::<()>(Arc::clone(&context));
     /// ```
     #[inline(always)]
     #[must_use]
@@ -148,7 +155,7 @@ impl RouterBuilder {
     /// let app = RouterBuilder::new()
     ///     // Ex: `/connect` -> `/bar/connect`
     ///     .connect_base_path("/bar")
-    ///     .build(Arc::clone(&context));
+    ///     .build::<()>(Arc::clone(&context));
     /// ```
     #[inline(always)]
     #[must_use]
@@ -170,7 +177,7 @@ impl RouterBuilder {
     /// let app = RouterBuilder::new()
     ///     // Ex: `/disconnect` -> `/bar/disconnect`
     ///     .disconnect_base_path("/bar")
-    ///     .build(Arc::clone(&context));
+    ///     .build::<()>(Arc::clone(&context));
     /// ```
     #[inline(always)]
     #[must_use]
