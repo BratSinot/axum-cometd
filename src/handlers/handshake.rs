@@ -8,8 +8,8 @@ use axum::{extract::State, http::HeaderMap, Extension, Json};
 use axum_extra::extract::cookie::{Cookie, CookieJar};
 use std::sync::Arc;
 
-pub(crate) async fn handshake<AdditionalData>(
-    State(context): State<Arc<LongPollingServiceContext<AdditionalData>>>,
+pub(crate) async fn handshake<AdditionalData, CustomData>(
+    State(context): State<Arc<LongPollingServiceContext<AdditionalData, CustomData>>>,
     Extension(data): Extension<AdditionalData>,
     headers: HeaderMap,
     mut jar: CookieJar,
@@ -17,6 +17,7 @@ pub(crate) async fn handshake<AdditionalData>(
 ) -> HandlerResult<(CookieJar, Json<[Message; 1]>)>
 where
     AdditionalData: Send + Sync + 'static,
+    CustomData: Send + Sync + 'static,
 {
     tracing::info!(
         channel = "/meta/handshake",
@@ -58,7 +59,7 @@ where
 
     let _ = context
         .tx
-        .broadcast(Arc::new(Event::SessionAddedArgs {
+        .broadcast(Arc::new(Event::SessionAdded {
             client_id,
             headers,
             data,

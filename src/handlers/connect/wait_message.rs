@@ -10,8 +10,8 @@ use core::time::Duration;
 use serde_json::json;
 
 #[inline]
-pub(super) async fn wait_client_message_handle<AdditionalData>(
-    context: &LongPollingServiceContext<AdditionalData>,
+pub(super) async fn wait_client_message_handle<AdditionalData, CustomData>(
+    context: &LongPollingServiceContext<AdditionalData, CustomData>,
     jar: CookieJar,
     message: Message,
 ) -> HandlerResult<Vec<Message>> {
@@ -63,11 +63,11 @@ pub(super) async fn wait_client_message_handle<AdditionalData>(
 }
 
 #[inline]
-fn client_receiver_error_to_message<AdditionalData>(
+fn client_receiver_error_to_message<AdditionalData, CustomData>(
     error: &ClientReceiverError,
     id: Option<String>,
     channel: Option<String>,
-    context: &LongPollingServiceContext<AdditionalData>,
+    context: &LongPollingServiceContext<AdditionalData, CustomData>,
 ) -> Message {
     match *error {
         ClientReceiverError::Elapsed(ref _err) => Message {

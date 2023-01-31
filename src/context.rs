@@ -20,9 +20,9 @@ use tokio::sync::{mpsc, RwLock};
 
 /// Context for sending messages to channels.
 #[derive(Debug)]
-pub struct LongPollingServiceContext<AdditionalData> {
-    pub(crate) tx: Sender<Arc<Event<AdditionalData>>>,
-    pub(crate) inactive_rx: InactiveReceiver<Arc<Event<AdditionalData>>>,
+pub struct LongPollingServiceContext<AdditionalData, CustomData> {
+    pub(crate) tx: Sender<Arc<Event<AdditionalData, CustomData>>>,
+    pub(crate) inactive_rx: InactiveReceiver<Arc<Event<AdditionalData, CustomData>>>,
 
     pub(crate) wildnames_cache: WildNamesCache,
     pub(crate) channel_name_validator: ChannelNameValidator,
@@ -49,13 +49,13 @@ impl Channel {
     }
 }
 
-impl<AdditionalData> LongPollingServiceContext<AdditionalData> {
+impl<AdditionalData, CustomData> LongPollingServiceContext<AdditionalData, CustomData> {
     /// Get new events receiver.
     ///
     /// # Example
     /// ```rust
     /// # async {
-    /// # let context = axum_cometd::LongPollingServiceContextBuilder::new().build::<()>();
+    /// # let context = axum_cometd::LongPollingServiceContextBuilder::new().build::<(), ()>();
     ///     let mut rx = context.rx();
     ///     
     ///     while let Ok(event) = rx.recv().await {
@@ -63,8 +63,25 @@ impl<AdditionalData> LongPollingServiceContext<AdditionalData> {
     ///     }
     /// # };
     /// ```
-    pub fn rx(&self) -> Receiver<Arc<Event<AdditionalData>>> {
+    pub fn rx(&self) -> Receiver<Arc<Event<AdditionalData, CustomData>>> {
         self.inactive_rx.activate_cloned()
+    }
+
+    /// Get new events sender.
+    ///
+    /// # Example
+    /// ```rust
+    /// # use std::sync::Arc;
+    /// # use axum_cometd::Event;
+    ///  async {
+    /// # let context = axum_cometd::LongPollingServiceContextBuilder::new().build::<(), ()>();
+    ///     let tx = context.tx();
+    ///     
+    ///     let  _ = tx.broadcast(Arc::new(Event::CustomData(()))).await;
+    /// # };
+    /// ```
+    pub fn tx(&self) -> Sender<Arc<Event<AdditionalData, CustomData>>> {
+        self.tx.clone()
     }
 
     /// Send message to channel.
@@ -84,7 +101,7 @@ impl<AdditionalData> LongPollingServiceContext<AdditionalData> {
     ///         .max_interval_ms(2000)
     ///         .client_channel_capacity(10_000)
     ///         .subscription_channel_capacity(20_000)
-    ///         .build::<()>();
+    ///         .build::<(), ()>();
     ///
     ///     loop {
     ///         context
@@ -167,6 +184,7 @@ impl<AdditionalData> LongPollingServiceContext<AdditionalData> {
     pub(crate) async fn register(self: &Arc<Self>, cookie_id: CookieId) -> Option<ClientId>
     where
         AdditionalData: Send + Sync + 'static,
+        CustomData: Send + Sync + 'static,
     {
         let client_id = {
             let mut client_id_channels_write_guard = self.client_id_senders.write().await;
@@ -202,6 +220,7 @@ impl<AdditionalData> LongPollingServiceContext<AdditionalData> {
     pub(crate) async fn subscribe(self: &Arc<Self>, client_id: ClientId, channels: &[String])
     where
         AdditionalData: Send + Sync + 'static,
+        CustomData: Send + Sync + 'static,
     {
         let mut channels_data_write_guard = self.channels_data.write().await;
         for channel in channels {
@@ -244,7 +263,7 @@ impl<AdditionalData> LongPollingServiceContext<AdditionalData> {
 
         let _ = self
             .tx
-            .broadcast(Arc::new(Event::SessionRemovedArgs { client_id }))
+            .broadcast(Arc::new(Event::SessionRemoved { client_id }))
             .await;
     }
 

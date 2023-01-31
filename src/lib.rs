@@ -39,5 +39,14 @@ mod handlers;
 mod types;
 mod utils;
 
+use std::sync::Arc;
+
 pub(crate) use ext::*;
 pub use {context::*, types::error::*, types::*};
+
+#[allow(missing_docs)]
+pub type Sender<AdditionalData, CustomData> =
+    async_broadcast::Sender<Arc<Event<AdditionalData, CustomData>>>;
+#[allow(missing_docs)]
+pub type Receiver<AdditionalData, CustomData> =
+    async_broadcast::Receiver<Arc<Event<AdditionalData, CustomData>>>;

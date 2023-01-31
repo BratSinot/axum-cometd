@@ -44,14 +44,14 @@ async fn main() {
     tokio::task::spawn(async move {
         while let Ok(event) = rx.recv().await {
             match *event {
-                Event::SessionAddedArgs {
+                Event::SessionAdded {
                     client_id,
                     ref headers,
                     ..
                 } => {
                     tracing::info!("Got new session {client_id}: `{headers:?}.");
                 }
-                Event::SessionRemovedArgs { client_id, .. } => {
+                Event::SessionRemoved { client_id, .. } => {
                     tracing::info!("Removed session {client_id}.");
                 }
                 _ => {}
@@ -62,7 +62,7 @@ async fn main() {
     let service = Router::new()
         .nest(
             "/notifications",
-            RouterBuilder::new().build(Arc::clone(&context)),
+            RouterBuilder::new().build::<()>(Arc::clone(&context)),
         )
         .into_make_service();
     let addr = SocketAddr::new(IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0)), 1025);
@@ -77,7 +77,7 @@ async fn main() {
     handler.await.unwrap().unwrap();
 }
 
-fn spawn_topic(context: Arc<LongPollingServiceContext<()>>, channel: &'static str) {
+fn spawn_topic(context: Arc<LongPollingServiceContext<(), ()>>, channel: &'static str) {
     tokio::task::spawn(async move {
         let mut rng: StdRng = SeedableRng::from_entropy();
         let distribution = Uniform::new(500, 1000);

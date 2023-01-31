@@ -29,8 +29,8 @@ pub(crate) struct Signals {
 
 impl ClientSender {
     #[inline]
-    pub(crate) fn create<AdditionalData>(
-        context: Arc<LongPollingServiceContext<AdditionalData>>,
+    pub(crate) fn create<AdditionalData, CustomData>(
+        context: Arc<LongPollingServiceContext<AdditionalData, CustomData>>,
         cookie_id: CookieId,
         client_id: ClientId,
         timeout: Duration,
@@ -39,6 +39,7 @@ impl ClientSender {
     ) -> Self
     where
         AdditionalData: Send + Sync + 'static,
+        CustomData: Send + Sync + 'static,
     {
         let signals = Arc::new(Signals::default());
         let rx = Arc::new(Mutex::new(rx));

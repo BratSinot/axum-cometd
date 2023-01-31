@@ -10,8 +10,8 @@ use axum::{
 use axum_extra::extract::CookieJar;
 use std::sync::Arc;
 
-pub(crate) async fn subscribe<AdditionalData>(
-    State(context): State<Arc<LongPollingServiceContext<AdditionalData>>>,
+pub(crate) async fn subscribe<AdditionalData, CustomData>(
+    State(context): State<Arc<LongPollingServiceContext<AdditionalData, CustomData>>>,
     Extension(data): Extension<AdditionalData>,
     headers: HeaderMap,
     jar: CookieJar,
@@ -19,6 +19,7 @@ pub(crate) async fn subscribe<AdditionalData>(
 ) -> HandlerResult<Json<[Message; 1]>>
 where
     AdditionalData: Send + Sync + 'static,
+    CustomData: Send + Sync + 'static,
 {
     tracing::info!(
         channel = "/meta/subscribe",
@@ -62,7 +63,7 @@ where
 
     let _ = context
         .tx
-        .broadcast(Arc::new(Event::SubscribeArgs {
+        .broadcast(Arc::new(Event::Subscribe {
             client_id,
             headers,
             channels: subscription.clone(),

@@ -15,7 +15,7 @@ async fn test_different_paths() {
         .client_channel_capacity(10)
         .subscription_channel_capacity(10);
     let _ = format!("{builder:?}");
-    let context = builder.build();
+    let context = builder.build::<(), ()>();
 
     let builder = RouterBuilder::new()
         .subscribe_base_path("/sub")
@@ -66,7 +66,7 @@ async fn test_event_channel() {
         .build();
     let mut rx = context.rx();
 
-    let router = RouterBuilder::new().build(Arc::clone(&context));
+    let router = RouterBuilder::new().build::<()>(Arc::clone(&context));
 
     let mut mock_client = ClientMock::create("", "/", "", "", router);
     mock_client.handshake().await;
@@ -74,13 +74,13 @@ async fn test_event_channel() {
 
     tokio::time::sleep(Duration::from_secs(1)).await;
 
-    async fn recv(rx: &mut Receiver<Arc<Event<()>>>) -> Arc<Event<()>> {
+    async fn recv(rx: &mut Receiver<Arc<Event<(), ()>>>) -> Arc<Event<(), ()>> {
         timeout(Duration::from_secs(5), rx.recv())
             .await
             .unwrap()
             .unwrap()
     }
 
-    matches!(recv(&mut rx).await.as_ref(), Event::SessionAddedArgs{ client_id, .. } if client_id.to_string() == orig_client_id && context.unsubscribe(*client_id).await == ());
-    matches!(recv(&mut rx).await.as_ref(), Event::SessionRemovedArgs{ client_id, .. } if client_id.to_string() == orig_client_id);
+    matches!(recv(&mut rx).await.as_ref(), Event::SessionAdded{ client_id, .. } if client_id.to_string() == orig_client_id && context.unsubscribe(*client_id).await == ());
+    matches!(recv(&mut rx).await.as_ref(), Event::SessionRemoved{ client_id, .. } if client_id.to_string() == orig_client_id);
 }

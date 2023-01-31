@@ -66,10 +66,12 @@ impl LongPollingServiceContextBuilder {
     /// ```rust
     /// use axum_cometd::LongPollingServiceContextBuilder;
     ///
-    /// let context = LongPollingServiceContextBuilder::new().build::<()>();
+    /// let context = LongPollingServiceContextBuilder::new().build::<(), ()>();
     /// ```
     #[inline(always)]
-    pub fn build<AdditionalData>(self) -> Arc<LongPollingServiceContext<AdditionalData>> {
+    pub fn build<AdditionalData, CustomData>(
+        self,
+    ) -> Arc<LongPollingServiceContext<AdditionalData, CustomData>> {
         let Self {
             events_channel_capacity,
             subscriptions_storage_capacity,
