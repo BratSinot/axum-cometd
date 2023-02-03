@@ -62,7 +62,7 @@ async fn main() {
     let service = Router::new()
         .nest(
             "/notifications",
-            RouterBuilder::new().build::<()>(Arc::clone(&context)),
+            RouterBuilder::new().build(Arc::clone(&context)),
         )
         .into_make_service();
     let addr = SocketAddr::new(IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0)), 1025);
