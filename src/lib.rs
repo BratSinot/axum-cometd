@@ -27,7 +27,6 @@
     clippy::if_not_else,
     clippy::option_if_let_else
 )]
-
 //! This crate aims to make ability to use CometD protocol in servers written in Rust.
 //!
 //! This project is in progress and might change a lot from version to version.
@@ -36,6 +35,7 @@
 //! - [Server endpoints](#server-endpoints)
 //! - [`clientId` and `BAYEUX_BROWSER` cookie](#clientId-bayeux-browser-cookie)
 //! - [How server works](#how-server-works)
+//! - [How get server events](#how-get-server-events)
 //!
 //! # Server endpoints
 //!
@@ -81,6 +81,80 @@
 //! (in case of publish messages to `/connect` it will be check each `clientId`).
 //! If `clientId` will be used with different `BAYEUX_BROWSER` cookie,
 //! server will return '402::session_unknown' error.
+//!
+//! # How get server events
+//!
+//! Server have 3 events:
+//! 1) [`Event::SessionAdded`]
+//! 2) [`Event::Subscribe`]
+//! 3) [`Event::SessionRemoved`]
+//! 4) [`Event::CustomData`]
+//!
+//! `SessionAdded` and `Subscribe` can contain additional data, which will be attached through
+//! [`axum::Extension`].
+//! To get those events, you must use get receive channel [`LongPollingServiceContext::rx`].
+//! Server do not use [`Event::CustomData`], it user custom message which can be received in
+//! receiver.
+//! ```rust
+//! use std::sync::Arc;
+//! use axum::Extension;
+//! use axum_cometd::{LongPollingServiceContextBuilder, RouterBuilder};
+//!
+//! #[derive(Debug, Clone)]
+//! struct ContextData {
+//!     server_name: Arc<str>,
+//! }
+//!
+//! # #[tokio::main]
+//! # async fn main() {
+//! use std::time::Duration;
+//! use axum_cometd::Event;
+//! let context = LongPollingServiceContextBuilder::new()
+//!     .build::<ContextData, &'static str>();
+//!
+//! let app = RouterBuilder::new()
+//!     .build_with_additional_data(Arc::clone(&context))
+//!     .layer(Extension(ContextData {
+//!         server_name: std::env::var("SERVER_NAME")
+//!             .map(Arc::into)
+//!             .unwrap_or_else(|_| Arc::from("Skalica")),
+//!     }));
+//!
+//! let tx = context.tx();
+//! let mut rx = context.rx();
+//!
+//! tokio::task::spawn(async move {
+//!     loop {
+//!         let _ = tx.broadcast(Event::custom_data("CUSTOM_DATA")).await;
+//!         tokio::time::sleep(Duration::from_secs(1)).await;
+//!     }
+//! });
+//!
+//! while let Ok(event) = rx.recv().await {
+//!     match *event {
+//!         Event::SessionAdded{
+//!             client_id,
+//!             ref headers,
+//!             ref data,
+//!         } => {
+//!             println!("sessionAdded with clientId({client_id}), headers({headers:?}), data({data:?})");
+//!         }
+//!         Event::Subscribe{
+//!             client_id,
+//!             ref headers,
+//!             ref channels,
+//!             ref data,
+//!         } => {
+//!             println!("subscribed on channels({channels:?}) with clientId({client_id}), headers({headers:?}), data({data:?})");
+//!         }
+//!         Event::SessionRemoved{
+//!             client_id,
+//!         } => println!("clientId({clientId}) session removed"),
+//!         Event::CustomData(msg) => println!("got CustomData({msg})"),
+//!     }
+//! }
+//! # }
+//! ```
 
 mod context;
 mod ext;
