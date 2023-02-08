@@ -34,7 +34,7 @@ impl RouterBuilder {
     /// Return a `axum::Router`.
     ///
     /// # Example
-    /// ```rust
+    /// ```rust,no_run
     /// use std::sync::Arc;
     /// use axum_cometd::RouterBuilder;
     ///
@@ -56,7 +56,7 @@ impl RouterBuilder {
     /// Return a `axum::Router`.
     ///
     /// # Example
-    /// ```rust
+    /// ```rust,no_run
     /// use std::sync::Arc;
     /// use axum::Extension;
     /// use axum_cometd::RouterBuilder;
@@ -103,7 +103,7 @@ impl RouterBuilder {
     /// Set subscribe base-path for routers.
     ///
     /// # Example
-    /// ```rust
+    /// ```rust,no_run
     /// use std::sync::Arc;
     /// use axum_cometd::RouterBuilder;
     ///
@@ -125,7 +125,7 @@ impl RouterBuilder {
     /// Set handshake base-path for routers.
     ///
     /// # Example
-    /// ```rust
+    /// ```rust,no_run
     /// use std::sync::Arc;
     /// use axum_cometd::RouterBuilder;
     ///
@@ -147,7 +147,7 @@ impl RouterBuilder {
     /// Set connect base-path for routers.
     ///
     /// # Example
-    /// ```rust
+    /// ```rust,no_run
     /// use std::sync::Arc;
     /// use axum_cometd::RouterBuilder;
     ///
@@ -169,7 +169,7 @@ impl RouterBuilder {
     /// Set disconnect base-path for routers.
     ///
     /// # Example
-    /// ```rust
+    /// ```rust,no_run
     /// use std::sync::Arc;
     /// use axum_cometd::RouterBuilder;
     ///

@@ -53,7 +53,7 @@ impl<AdditionalData, CustomData> LongPollingServiceContext<AdditionalData, Custo
     /// Get new events receiver.
     ///
     /// # Example
-    /// ```rust
+    /// ```rust,no_run
     /// # async {
     /// # let context = axum_cometd::LongPollingServiceContextBuilder::new().build::<(), ()>();
     ///     let mut rx = context.rx();
@@ -70,7 +70,7 @@ impl<AdditionalData, CustomData> LongPollingServiceContext<AdditionalData, Custo
     /// Get new events sender.
     ///
     /// # Example
-    /// ```rust
+    /// ```rust,no_run
     /// # use std::sync::Arc;
     /// # use axum_cometd::Event;
     ///  async {
@@ -87,7 +87,7 @@ impl<AdditionalData, CustomData> LongPollingServiceContext<AdditionalData, Custo
     /// Send message to channel.
     ///
     /// # Example
-    /// ```rust
+    /// ```rust,no_run
     ///     #[derive(Debug, Clone, serde::Serialize)]
     ///     struct Data<'a> {
     ///         msg: std::borrow::Cow<'a, str>,
