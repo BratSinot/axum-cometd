@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Fixed
 
+- `/disconnect` return right response.
+
 ### Add
 
 - Additional data for callbacks through `axum::Extension`.

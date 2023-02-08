@@ -147,7 +147,10 @@ impl ClientMock {
         }]);
 
         let response = self.send_request(&self.disconnect_endpoint, body).await;
-        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let [message] = response.to::<[JsonValue; 1]>().await;
+        assert_eq!(message["successful"], true);
     }
 
     pub async fn publish(&self, send: impl IntoIterator<Item = (String, JsonValue)>) {

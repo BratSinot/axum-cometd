@@ -2,7 +2,7 @@ use crate::{
     error::HandlerResult, messages::Message, CheckExt, CookieJarExt, LongPollingServiceContext,
     ZERO_CLIENT_ID,
 };
-use axum::{extract::State, http::StatusCode, Json};
+use axum::{extract::State, Json};
 use axum_extra::extract::CookieJar;
 use std::sync::Arc;
 
@@ -10,7 +10,7 @@ pub(crate) async fn disconnect<AdditionalData, CustomData>(
     State(context): State<Arc<LongPollingServiceContext<AdditionalData, CustomData>>>,
     jar: CookieJar,
     Json([message]): Json<[Message; 1]>,
-) -> HandlerResult<StatusCode> {
+) -> HandlerResult<Json<[Message; 1]>> {
     tracing::info!(
         channel = "/meta/disconnect",
         request_id = message.id.as_deref().unwrap_or("empty"),
@@ -38,5 +38,5 @@ pub(crate) async fn disconnect<AdditionalData, CustomData>(
 
     context.unsubscribe(client_id).await;
 
-    Ok(StatusCode::BAD_REQUEST)
+    Ok(Json([Message::ok(id, channel)]))
 }
