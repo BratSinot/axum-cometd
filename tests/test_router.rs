@@ -1,5 +1,4 @@
 use async_broadcast::Receiver;
-use axum::Router;
 use axum_cometd::{Event, LongPollingServiceContextBuilder, RouterBuilder};
 use serde_json::json;
 use std::{sync::Arc, time::Duration};
@@ -18,12 +17,12 @@ async fn test_different_paths() {
     let context = builder.build::<(), ()>();
 
     let builder = RouterBuilder::new()
-        .subscribe_base_path("/sub")
-        .handshake_base_path("/hand")
-        .connect_base_path("/conn")
-        .disconnect_base_path("/disconn");
+        .subscribe_base_path("/root/sub")
+        .handshake_base_path("/root/hand")
+        .connect_base_path("/root/conn")
+        .disconnect_base_path("/root/disconn");
     let _ = format!("{builder:?}");
-    let router = Router::new().nest("/root", builder.build(Arc::clone(&context)));
+    let router = builder.build(Arc::clone(&context));
 
     let mut mock_client = ClientMock::create(
         "/root/hand",
