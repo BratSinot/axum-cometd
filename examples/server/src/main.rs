@@ -42,7 +42,7 @@ async fn main() {
 
     let mut rx = context.rx();
     tokio::task::spawn(async move {
-        while let Ok(event) = rx.recv().await {
+        while let Some(event) = rx.recv().await {
             match *event {
                 Event::SessionAdded {
                     client_id,

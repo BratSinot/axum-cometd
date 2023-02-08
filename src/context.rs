@@ -8,10 +8,10 @@ use crate::{
     messages::SubscriptionMessage,
     types::{ChannelId, ClientId, ClientReceiver, ClientSender, CookieId},
     utils::{ChannelNameValidator, WildNamesCache},
-    Event, SendError,
+    CometdCustomDataSender, CometdEventReceiver, Event, SendError,
 };
 use ahash::{AHashMap, AHashSet};
-use async_broadcast::{InactiveReceiver, Receiver, Sender};
+use async_broadcast::{InactiveReceiver, Sender};
 use core::{fmt::Debug, ops::Deref, time::Duration};
 use serde::Serialize;
 use serde_json::json;
@@ -58,13 +58,13 @@ impl<AdditionalData, CustomData> LongPollingServiceContext<AdditionalData, Custo
     /// # let context = axum_cometd::LongPollingServiceContextBuilder::new().build::<(), ()>();
     ///     let mut rx = context.rx();
     ///     
-    ///     while let Ok(event) = rx.recv().await {
+    ///     while let Some(event) = rx.recv().await {
     ///         println!("Got event: `{event:?}`");
     ///     }
     /// # };
     /// ```
-    pub fn rx(&self) -> Receiver<Arc<Event<AdditionalData, CustomData>>> {
-        self.inactive_rx.activate_cloned()
+    pub fn rx(&self) -> CometdEventReceiver<AdditionalData, CustomData> {
+        CometdEventReceiver(self.inactive_rx.activate_cloned())
     }
 
     /// Get new events sender.
@@ -74,14 +74,14 @@ impl<AdditionalData, CustomData> LongPollingServiceContext<AdditionalData, Custo
     /// # use std::sync::Arc;
     /// # use axum_cometd::Event;
     ///  async {
-    /// # let context = axum_cometd::LongPollingServiceContextBuilder::new().build::<(), ()>();
+    /// # let context = axum_cometd::LongPollingServiceContextBuilder::new().build::<(), &'static str>();
     ///     let tx = context.tx();
     ///     
-    ///     let  _ = tx.broadcast(Arc::new(Event::CustomData(()))).await;
+    ///     tx.send("hello").await;
     /// # };
     /// ```
-    pub fn tx(&self) -> Sender<Arc<Event<AdditionalData, CustomData>>> {
-        self.tx.clone()
+    pub fn tx(&self) -> CometdCustomDataSender<AdditionalData, CustomData> {
+        CometdCustomDataSender(self.tx.clone())
     }
 
     /// Send message to channel.

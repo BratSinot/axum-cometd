@@ -1,5 +1,4 @@
-use async_broadcast::Receiver;
-use axum_cometd::{Event, LongPollingServiceContextBuilder, RouterBuilder};
+use axum_cometd::{CometdEventReceiver, Event, LongPollingServiceContextBuilder, RouterBuilder};
 use serde_json::json;
 use std::{sync::Arc, time::Duration};
 use test_common::*;
@@ -73,7 +72,7 @@ async fn test_event_channel() {
 
     tokio::time::sleep(Duration::from_secs(1)).await;
 
-    async fn recv(rx: &mut Receiver<Arc<Event<(), ()>>>) -> Arc<Event<(), ()>> {
+    async fn recv(rx: &mut CometdEventReceiver<(), ()>) -> Arc<Event<(), ()>> {
         timeout(Duration::from_secs(5), rx.recv())
             .await
             .unwrap()
