@@ -127,12 +127,12 @@
 //!
 //! tokio::task::spawn(async move {
 //!     loop {
-//!         let _ = tx.broadcast(Event::custom_data("CUSTOM_DATA")).await;
+//!         tx.send("CUSTOM_DATA").await;
 //!         tokio::time::sleep(Duration::from_secs(1)).await;
 //!     }
 //! });
 //!
-//! while let Ok(event) = rx.recv().await {
+//! while let Some(event) = rx.recv().await {
 //!     match *event {
 //!         Event::SessionAdded{
 //!             client_id,
@@ -164,14 +164,5 @@ mod handlers;
 mod types;
 mod utils;
 
-use std::sync::Arc;
-
 pub(crate) use ext::*;
 pub use {context::*, types::error::*, types::*};
-
-#[allow(missing_docs)]
-pub type Sender<AdditionalData, CustomData> =
-    async_broadcast::Sender<Arc<Event<AdditionalData, CustomData>>>;
-#[allow(missing_docs)]
-pub type Receiver<AdditionalData, CustomData> =
-    async_broadcast::Receiver<Arc<Event<AdditionalData, CustomData>>>;
