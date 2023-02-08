@@ -32,6 +32,55 @@
 //!
 //! This project is in progress and might change a lot from version to version.
 //!
+//! # Table of contents
+//! - [Server endpoints](#server-endpoints)
+//! - [`clientId` and `BAYEUX_BROWSER` cookie](#clientId-bayeux-browser-cookie)
+//! - [How server works](#how-server-works)
+//!
+//! # Server endpoints
+//!
+//! Server have 4 endpoints:
+//! 1) `/handshake` -- to register and get `clientId`;
+//! 2) `/` -- to subscribe on channels;
+//! 3) `/connect` -- to receiving or publish messages;
+//! 4) `/disconnect` -- to say to server clean data for `clientId`;
+//!
+//! You can change base part of these endpoints through
+//! [`RouterBuilder::handshake_base_path`],
+//! [`RouterBuilder::subscribe_base_path`],
+//! [`RouterBuilder::connect_base_path`],
+//! [`RouterBuilder::disconnect_base_path`].
+//! For example, to make `/node/0/handshake` and `/node/1/connect` you can do this:
+//! ```rust
+//! use std::sync::Arc;
+//! use axum_cometd::{LongPollingServiceContextBuilder, RouterBuilder};
+//!
+//! let context = LongPollingServiceContextBuilder::new()
+//!     .build();
+//!
+//! let service = RouterBuilder::new()
+//!     .handshake_base_path("/node/0")
+//!     .connect_base_path("/node/1")
+//!     .build(Arc::clone(&context));
+//! ```
+//!
+//! # `clientId` and `BAYEUX_BROWSER` cookie
+//!
+//! `clientId` and `BAYEUX_BROWSER` cookie is 40-character length hex string,
+//! with possibility of leading zeroes.
+//! Server will return '402::session_unknown' error if it will be not.
+//! To get some uniquity first 8 bytes is taken from Unix timestamp, and for randomness
+//! last part filled with random numbers.
+//!
+//! # How server works
+//!
+//! `BAYEUX_BROWSER` cookie will be generated and set at `/handshake` request,
+//! if there isn't one already.
+//!
+//! At others endpoints ([Server endpoints]) server check `clientId` and `BAYEUX_BROWSER` cookie
+//! (in case of publish messages to `/connect` it will be check each `clientId`).
+//! If `clientId` will be used with different `BAYEUX_BROWSER` cookie,
+//! server will return '402::session_unknown' error.
 
 mod context;
 mod ext;
