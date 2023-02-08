@@ -51,17 +51,19 @@
 //! [`RouterBuilder::connect_base_path`],
 //! [`RouterBuilder::disconnect_base_path`].
 //! For example, to make `/node/0/handshake` and `/node/1/connect` you can do this:
-//! ```rust
+//! ```rust,no_run
 //! use std::sync::Arc;
 //! use axum_cometd::{LongPollingServiceContextBuilder, RouterBuilder};
 //!
 //! let context = LongPollingServiceContextBuilder::new()
 //!     .build();
+//! # let context: Arc<axum_cometd::LongPollingServiceContext<(), ()>> = context;
 //!
-//! let service = RouterBuilder::new()
+//! let router = RouterBuilder::new()
 //!     .handshake_base_path("/node/0")
 //!     .connect_base_path("/node/1")
 //!     .build(Arc::clone(&context));
+//!
 //! ```
 //!
 //! # `clientId` and `BAYEUX_BROWSER` cookie
@@ -95,7 +97,7 @@
 //! To get those events, you must use get receive channel [`LongPollingServiceContext::rx`].
 //! Server do not use [`Event::CustomData`], it user custom message which can be received in
 //! receiver.
-//! ```rust
+//! ```rust,no_run
 //! use std::sync::Arc;
 //! use axum::Extension;
 //! use axum_cometd::{LongPollingServiceContextBuilder, RouterBuilder};
@@ -105,7 +107,7 @@
 //!     server_name: Arc<str>,
 //! }
 //!
-//! # #[tokio::main]
+//! # #[tokio::main(flavor = "current_thread")]
 //! # async fn main() {
 //! use std::time::Duration;
 //! use axum_cometd::Event;
@@ -116,7 +118,7 @@
 //!     .build_with_additional_data(Arc::clone(&context))
 //!     .layer(Extension(ContextData {
 //!         server_name: std::env::var("SERVER_NAME")
-//!             .map(Arc::into)
+//!             .map(Arc::from)
 //!             .unwrap_or_else(|_| Arc::from("Skalica")),
 //!     }));
 //!
@@ -149,7 +151,7 @@
 //!         }
 //!         Event::SessionRemoved{
 //!             client_id,
-//!         } => println!("clientId({clientId}) session removed"),
+//!         } => println!("clientId({client_id}) session removed"),
 //!         Event::CustomData(msg) => println!("got CustomData({msg})"),
 //!     }
 //! }

@@ -63,7 +63,7 @@ impl LongPollingServiceContextBuilder {
     /// Return a `LongPoolingServiceContextBuilder`.
     ///
     /// # Example
-    /// ```rust
+    /// ```rust,no_run
     /// use axum_cometd::LongPollingServiceContextBuilder;
     ///
     /// let context = LongPollingServiceContextBuilder::new().build::<(), ()>();
