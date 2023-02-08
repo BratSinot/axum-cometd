@@ -1,4 +1,4 @@
-use axum::{Router, Server};
+use axum::Server;
 use axum_cometd::{
     Event, LongPollingServiceContext, LongPollingServiceContextBuilder, RouterBuilder,
 };
