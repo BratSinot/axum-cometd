@@ -1,4 +1,4 @@
-use axum::{Router, Server};
+use axum::Server;
 use axum_cometd::{
     Event, LongPollingServiceContext, LongPollingServiceContextBuilder, RouterBuilder,
 };
@@ -59,11 +59,12 @@ async fn main() {
         }
     });
 
-    let service = Router::new()
-        .nest(
-            "/notifications",
-            RouterBuilder::new().build(Arc::clone(&context)),
-        )
+    let service = RouterBuilder::new()
+        .subscribe_base_path("/notifications")
+        .handshake_base_path("/notifications")
+        .connect_base_path("/notifications")
+        .disconnect_base_path("/notifications")
+        .build(Arc::clone(&context))
         .into_make_service();
     let addr = SocketAddr::new(IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0)), 1025);
 
