@@ -90,7 +90,7 @@ impl LongPollingServiceContextBuilder {
         })
     }
 
-    /// Set message wait timeout in milliseconds.
+    /// Set message wait timeout.
     #[inline(always)]
     #[must_use]
     pub const fn timeout(mut self, timeout: Duration) -> Self {
@@ -98,7 +98,7 @@ impl LongPollingServiceContextBuilder {
         self
     }
 
-    /// Set timeout in milliseconds, that the client must wait between two connects.
+    /// Set timeout, that the client must wait between two connects.
     #[inline(always)]
     #[must_use]
     pub fn interval_ms(self, _interval_ms: u64) -> Self {
@@ -112,7 +112,7 @@ impl LongPollingServiceContextBuilder {
         }*/
     }
 
-    /// Set timeout in milliseconds, which server wait between erase clientId.
+    /// Set timeout, which server wait between erase clientId.
     #[inline(always)]
     #[must_use]
     pub const fn max_interval(mut self, max_interval: Duration) -> Self {
