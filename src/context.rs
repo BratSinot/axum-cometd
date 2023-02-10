@@ -12,7 +12,7 @@ use crate::{
 };
 use ahash::{AHashMap, AHashSet};
 use async_broadcast::{InactiveReceiver, Sender};
-use core::{fmt::Debug, ops::Deref, time::Duration};
+use core::{fmt::Debug, ops::Deref};
 use serde::Serialize;
 use serde_json::json;
 use std::{collections::hash_map::Entry, sync::Arc};
@@ -88,7 +88,8 @@ impl<AdditionalData, CustomData> LongPollingServiceContext<AdditionalData, Custo
     ///
     /// # Example
     /// ```rust,no_run
-    ///     #[derive(Debug, Clone, serde::Serialize)]
+    /// # use core::time::Duration;
+    /// #[derive(Debug, Clone, serde::Serialize)]
     ///     struct Data<'a> {
     ///         msg: std::borrow::Cow<'a, str>,
     ///         r#bool: bool,
@@ -97,8 +98,8 @@ impl<AdditionalData, CustomData> LongPollingServiceContext<AdditionalData, Custo
     ///
     /// # async {
     ///     let context = axum_cometd::LongPollingServiceContextBuilder::new()
-    ///         .timeout_ms(1000)
-    ///         .max_interval_ms(2000)
+    ///         .timeout(Duration::from_secs(1))
+    ///         .max_interval(Duration::from_secs(2))
     ///         .client_channel_capacity(10_000)
     ///         .subscription_channel_capacity(20_000)
     ///         .build::<(), ()>();
@@ -199,7 +200,7 @@ impl<AdditionalData, CustomData> LongPollingServiceContext<AdditionalData, Custo
                         Arc::clone(self),
                         cookie_id,
                         client_id,
-                        Duration::from_millis(self.consts.max_interval_ms),
+                        self.consts.max_interval,
                         tx,
                         rx,
                     ));

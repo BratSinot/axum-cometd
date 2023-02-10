@@ -32,8 +32,8 @@ async fn main() {
         .init();
 
     let context = LongPollingServiceContextBuilder::new()
-        .timeout_ms(5000)
-        .max_interval_ms(2000)
+        .timeout(Duration::from_secs(5))
+        .max_interval(Duration::from_secs(2))
         .client_channel_capacity(500)
         .client_storage_capacity(10_000)
         .subscription_channel_capacity(500)

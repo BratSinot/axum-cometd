@@ -80,8 +80,8 @@ where
             version: Some("1.0".into()),
             supported_connection_types: Some(vec!["long-polling".into()]),
             advice: Some(Advice::retry(
-                context.consts.timeout_ms,
-                context.consts.interval_ms,
+                context.consts.timeout,
+                context.consts.interval,
             )),
             ..Message::ok(id, channel)
         }]),

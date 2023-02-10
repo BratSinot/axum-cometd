@@ -9,7 +9,7 @@ use std::sync::{
 use test_common::{ClientMock, ResponseExt, TEST_CLIENT_ID};
 use tokio::time::timeout;
 
-const TIMEOUT_MS: u64 = 1000;
+const TIMEOUT: Duration = Duration::from_secs(1);
 
 fn gen_message() -> JsonValue {
     static ID: AtomicU64 = AtomicU64::new(0);
@@ -21,7 +21,7 @@ fn gen_message() -> JsonValue {
 
 fn build_mock_client() -> ClientMock {
     let context = LongPollingServiceContextBuilder::new()
-        .timeout_ms(TIMEOUT_MS)
+        .timeout(TIMEOUT)
         .build();
     let router = RouterBuilder::new().build::<()>(Arc::clone(&context));
 

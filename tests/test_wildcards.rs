@@ -1,13 +1,16 @@
 use axum_cometd::{LongPollingServiceContext, LongPollingServiceContextBuilder, RouterBuilder};
+use core::{
+    sync::atomic::{AtomicU64, Ordering},
+    time::Duration,
+};
 use serde_json::{json, Value as JsonValue};
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use test_common::ClientMock;
 use tokio::try_join;
 
 fn build_context_and_mock_client() -> (Arc<LongPollingServiceContext<(), ()>>, ClientMock) {
     let context = LongPollingServiceContextBuilder::new()
-        .timeout_ms(1000)
+        .timeout(Duration::from_secs(1))
         .build();
     let router = RouterBuilder::new().build::<()>(Arc::clone(&context));
     let mock_client = ClientMock::create("", "/", "", "", router);

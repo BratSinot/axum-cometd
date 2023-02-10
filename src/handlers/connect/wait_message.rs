@@ -34,7 +34,7 @@ pub(super) async fn wait_client_message_handle<AdditionalData, CustomData>(
 
     let timeout = advice
         .and_then(|advice| advice.timeout)
-        .unwrap_or(context.consts.timeout_ms);
+        .map_or(context.consts.timeout, Duration::from_millis);
 
     let mut rx = context
         .get_client_receiver(&client_id)
@@ -45,7 +45,7 @@ pub(super) async fn wait_client_message_handle<AdditionalData, CustomData>(
         channel: recv_channel,
         msg,
     } = rx
-        .recv_timeout(Duration::from_millis(timeout))
+        .recv_timeout(timeout)
         .await
         .map_err(|error| {
             client_receiver_error_to_message(&error, id.clone(), channel.clone(), context)
@@ -72,8 +72,8 @@ fn client_receiver_error_to_message<AdditionalData, CustomData>(
     match *error {
         ClientReceiverError::Elapsed(ref _err) => Message {
             advice: Some(Advice::retry(
-                context.consts.timeout_ms,
-                context.consts.interval_ms,
+                context.consts.timeout,
+                context.consts.interval,
             )),
             ..Message::ok(id, channel)
         },
