@@ -1,13 +1,14 @@
 use axum_cometd::{LongPollingServiceContextBuilder, RouterBuilder};
+use core::time::Duration;
 use serde_json::json;
 use std::sync::Arc;
 use test_common::{ClientMock, ResponseExt};
 
-const TIMEOUT_MS: u64 = 1000;
+const TIMEOUT: Duration = Duration::from_secs(1);
 
 fn build_mock_client() -> ClientMock {
     let context = LongPollingServiceContextBuilder::new()
-        .timeout_ms(TIMEOUT_MS)
+        .timeout(TIMEOUT)
         .build();
     let router = RouterBuilder::new().build::<()>(Arc::clone(&context));
 

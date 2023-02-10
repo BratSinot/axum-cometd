@@ -1,14 +1,9 @@
-use crate::LongPollingServiceContext;
+use crate::{consts::*, LongPollingServiceContext};
 use ahash::AHashMap;
 use async_broadcast::broadcast;
+use core::time::Duration;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-
-const DEFAULT_TIMEOUT_MS: u64 = 20_000;
-const DEFAULT_INTERVAL_MS: u64 = 0;
-const DEFAULT_MAX_INTERVAL_MS: u64 = 60_000;
-const DEFAULT_CHANNEL_CAPACITY: usize = 500;
-const DEFAULT_STORAGE_CAPACITY: usize = 10_000;
 
 /// A builder to construct `LongPoolingServiceContext`.
 #[derive(Debug)]
@@ -33,9 +28,9 @@ impl Default for LongPollingServiceContextBuilder {
 
 #[derive(Debug)]
 pub(crate) struct LongPollingServiceContextConsts {
-    pub(crate) timeout_ms: u64,
-    pub(crate) interval_ms: u64,
-    pub(crate) max_interval_ms: u64,
+    pub(crate) timeout: Duration,
+    pub(crate) interval: Duration,
+    pub(crate) max_interval: Duration,
     pub(crate) client_channel_capacity: usize,
     pub(crate) subscription_channel_capacity: usize,
 }
@@ -44,9 +39,9 @@ impl Default for LongPollingServiceContextConsts {
     #[inline(always)]
     fn default() -> Self {
         Self {
-            timeout_ms: DEFAULT_TIMEOUT_MS,
-            interval_ms: DEFAULT_INTERVAL_MS,
-            max_interval_ms: DEFAULT_MAX_INTERVAL_MS,
+            timeout: DEFAULT_TIMEOUT,
+            interval: DEFAULT_INTERVAL,
+            max_interval: DEFAULT_MAX_INTERVAL,
             client_channel_capacity: DEFAULT_CHANNEL_CAPACITY,
             subscription_channel_capacity: DEFAULT_CHANNEL_CAPACITY,
         }
@@ -98,8 +93,8 @@ impl LongPollingServiceContextBuilder {
     /// Set message wait timeout in milliseconds.
     #[inline(always)]
     #[must_use]
-    pub const fn timeout_ms(mut self, timeout_ms: u64) -> Self {
-        self.consts.timeout_ms = timeout_ms;
+    pub const fn timeout(mut self, timeout: Duration) -> Self {
+        self.consts.timeout = timeout;
         self
     }
 
@@ -120,8 +115,8 @@ impl LongPollingServiceContextBuilder {
     /// Set timeout in milliseconds, which server wait between erase clientId.
     #[inline(always)]
     #[must_use]
-    pub const fn max_interval_ms(mut self, max_interval_ms: u64) -> Self {
-        self.consts.max_interval_ms = max_interval_ms;
+    pub const fn max_interval(mut self, max_interval: Duration) -> Self {
+        self.consts.max_interval = max_interval;
         self
     }
 

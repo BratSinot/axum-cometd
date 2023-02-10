@@ -1,6 +1,7 @@
 use axum_cometd::{CometdEventReceiver, Event, LongPollingServiceContextBuilder, RouterBuilder};
+use core::time::Duration;
 use serde_json::json;
-use std::{sync::Arc, time::Duration};
+use std::sync::Arc;
 use test_common::*;
 use tokio::time::timeout;
 use tokio::try_join;
@@ -8,8 +9,8 @@ use tokio::try_join;
 #[tokio::test]
 async fn test_different_paths() {
     let builder = LongPollingServiceContextBuilder::new()
-        .timeout_ms(1000)
-        .max_interval_ms(60_000)
+        .timeout(Duration::from_secs(1))
+        .max_interval(Duration::from_secs(60))
         .client_channel_capacity(10)
         .subscription_channel_capacity(10);
     let _ = format!("{builder:?}");
@@ -57,8 +58,8 @@ async fn test_different_paths() {
 #[tokio::test]
 async fn test_event_channel() {
     let context = LongPollingServiceContextBuilder::new()
-        .timeout_ms(5000)
-        .max_interval_ms(60_000)
+        .timeout(Duration::from_secs(5))
+        .max_interval(Duration::from_secs(60))
         .client_channel_capacity(10)
         .subscription_channel_capacity(10)
         .build();

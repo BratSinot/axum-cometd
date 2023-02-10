@@ -6,11 +6,11 @@ use std::sync::Arc;
 use test_common::{ClientMock, ResponseExt, TEST_CLIENT_ID};
 use tokio::join;
 
-const TIMEOUT_MS: u64 = 1000;
+const TIMEOUT: Duration = Duration::from_secs(1);
 
 fn build_mock_client() -> ClientMock {
     let context = LongPollingServiceContextBuilder::new()
-        .timeout_ms(TIMEOUT_MS)
+        .timeout(TIMEOUT)
         .build();
     let router = RouterBuilder::new().build::<()>(Arc::clone(&context));
 
@@ -122,7 +122,7 @@ async fn test_reconnect() {
             "advice": {
                 "interval": 0,
                 "reconnect": "retry",
-                "timeout": TIMEOUT_MS,
+                "timeout": TIMEOUT.as_millis() as u64,
             },
         }])
     );
@@ -192,7 +192,7 @@ async fn test_double_connect_same_client_id() {
             "advice": {
                 "interval": 0,
                 "reconnect": "retry",
-                "timeout": TIMEOUT_MS
+                "timeout": TIMEOUT.as_millis() as u64
             },
         }])
     );

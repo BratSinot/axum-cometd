@@ -3,6 +3,7 @@ mod de;
 use crate::types::{ChannelId, ClientId};
 use axum::Json;
 use core::fmt::Debug;
+use core::time::Duration;
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use serde_with::skip_serializing_none;
@@ -22,11 +23,11 @@ pub(crate) struct Advice {
 
 impl Advice {
     #[inline(always)]
-    pub(crate) fn retry(timeout_ms: u64, interval_ms: u64) -> Self {
+    pub(crate) fn retry(timeout: Duration, interval: Duration) -> Self {
         Self {
             reconnect: Some(Reconnect::Retry),
-            timeout: Some(timeout_ms),
-            interval: Some(interval_ms),
+            timeout: Some(timeout.as_millis().try_into().unwrap_or(u64::MAX)),
+            interval: Some(interval.as_millis().try_into().unwrap_or(u64::MAX)),
             ..Default::default()
         }
     }
