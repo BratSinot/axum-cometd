@@ -1,8 +1,6 @@
 use crate::{
-    error::HandlerResult,
     messages::{Advice, Message},
-    types::{CookieId, Event, BAYEUX_BROWSER},
-    CheckExt, LongPollingServiceContext,
+    *,
 };
 use axum::{extract::State, http::HeaderMap, Extension, Json};
 use axum_extra::extract::cookie::{Cookie, CookieJar};
@@ -55,14 +53,14 @@ where
         cookie_id
     };
 
-    let client_id = context.register(cookie_id).await.ok_or_else(|| {
+    let client_id = context.register(&cookie_id).await.ok_or_else(|| {
         Message::session_unknown(id.clone(), channel.clone(), Some(Advice::handshake()))
     })?;
 
     let _ = context
         .tx
         .broadcast(Arc::new(Event::SessionAdded {
-            client_id,
+            client_id: client_id.clone(),
             headers,
             data,
         }))

@@ -178,11 +178,11 @@ impl<AdditionalData, CustomData> LongPollingServiceContext<AdditionalData, Custo
                 "No `{client_id}` client was found for message: `{msg:?}`."
             );
 
-            Err(SendError::ClientWasntFound(*client_id))
+            Err(SendError::ClientWasntFound(client_id.clone()))
         }
     }
 
-    pub(crate) async fn register(self: &Arc<Self>, cookie_id: CookieId) -> Option<ClientId>
+    pub(crate) async fn register(self: &Arc<Self>, cookie_id: &CookieId) -> Option<ClientId>
     where
         AdditionalData: Send + Sync + 'static,
         CustomData: Send + Sync + 'static,
@@ -193,13 +193,13 @@ impl<AdditionalData, CustomData> LongPollingServiceContext<AdditionalData, Custo
             let client_id = ClientId::gen();
             let (tx, rx) = mpsc::channel(self.consts.client_channel_capacity);
 
-            match client_id_channels_write_guard.entry(client_id) {
+            match client_id_channels_write_guard.entry(client_id.clone()) {
                 Entry::Occupied(_) => return None,
                 Entry::Vacant(v) => {
                     v.insert(ClientSender::create(
                         Arc::clone(self),
-                        cookie_id,
-                        client_id,
+                        cookie_id.clone(),
+                        client_id.clone(),
                         self.consts.max_interval,
                         tx,
                         rx,
@@ -218,7 +218,7 @@ impl<AdditionalData, CustomData> LongPollingServiceContext<AdditionalData, Custo
         Some(client_id)
     }
 
-    pub(crate) async fn subscribe(self: &Arc<Self>, client_id: ClientId, channels: &[String])
+    pub(crate) async fn subscribe(self: &Arc<Self>, client_id: &ClientId, channels: &[String])
     where
         AdditionalData: Send + Sync + 'static,
         CustomData: Send + Sync + 'static,
@@ -243,7 +243,7 @@ impl<AdditionalData, CustomData> LongPollingServiceContext<AdditionalData, Custo
                 }
             }
             .client_ids
-            .insert(client_id);
+            .insert(client_id.clone());
         }
 
         tracing::info!(
@@ -330,7 +330,7 @@ impl<AdditionalData, CustomData> LongPollingServiceContext<AdditionalData, Custo
     #[inline]
     pub(crate) async fn check_client(
         &self,
-        cookie_id: CookieId,
+        cookie_id: &CookieId,
         client_id: &ClientId,
     ) -> Option<()> {
         self.client_id_senders

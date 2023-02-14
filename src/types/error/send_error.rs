@@ -6,7 +6,7 @@ use tokio::sync::mpsc::error::SendError as TokioSendError;
 
 /// Error returned by the `LongPoolingServiceContext::send`.
 #[allow(missing_docs)]
-#[derive(Debug, Copy, Clone, thiserror::Error)]
+#[derive(Debug, Clone, thiserror::Error)]
 pub enum SendError {
     #[error("internal error, channel closed")]
     Closed,

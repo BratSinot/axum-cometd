@@ -57,8 +57,8 @@ impl ClientSender {
     }
 
     #[inline(always)]
-    pub(crate) const fn cookie_id(&self) -> CookieId {
-        self.cookie_id
+    pub(crate) const fn cookie_id(&self) -> &CookieId {
+        &self.cookie_id
     }
 
     #[inline]

@@ -135,14 +135,14 @@
 //! while let Some(event) = rx.recv().await {
 //!     match *event {
 //!         Event::SessionAdded{
-//!             client_id,
+//!             ref client_id,
 //!             ref headers,
 //!             ref data,
 //!         } => {
 //!             println!("sessionAdded with clientId({client_id}), headers({headers:?}), data({data:?})");
 //!         }
 //!         Event::Subscribe{
-//!             client_id,
+//!             ref client_id,
 //!             ref headers,
 //!             ref channels,
 //!             ref data,
@@ -150,7 +150,7 @@
 //!             println!("subscribed on channels({channels:?}) with clientId({client_id}), headers({headers:?}), data({data:?})");
 //!         }
 //!         Event::SessionRemoved{
-//!             client_id,
+//!             ref client_id,
 //!         } => println!("clientId({client_id}) session removed"),
 //!         Event::CustomData(msg) => println!("got CustomData({msg})"),
 //!     }

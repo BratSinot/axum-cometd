@@ -3,7 +3,7 @@ use core::fmt::{Debug, Display, Formatter};
 
 pub(crate) const BAYEUX_BROWSER: &str = "BAYEUX_BROWSER";
 
-#[derive(Clone, Copy, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 pub(crate) struct CookieId(Id);
 
 impl CookieId {
