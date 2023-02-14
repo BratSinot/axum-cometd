@@ -18,7 +18,7 @@ impl IntoResponse for HandlerError {
     fn into_response(self) -> Response {
         match self {
             HandlerError::StatusCode(code) => code.into_response(),
-            HandlerError::Message(message) => Json([message]).into_response(),
+            HandlerError::Message(message) => Json(Box::<[_; 1]>::from([message])).into_response(),
         }
     }
 }

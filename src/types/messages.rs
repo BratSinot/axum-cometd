@@ -60,6 +60,7 @@ pub(crate) struct Message {
     //#[serde(rename = "connectionType")]
     //pub(crate) connection_type: Option<String>,
     pub(crate) data: Option<JsonValue>,
+    // TODO: Cow<'static, str>
     pub(crate) error: Option<String>,
     //pub(crate) ext: Option<JsonValue>,
     pub(crate) id: Option<String>,
@@ -70,6 +71,7 @@ pub(crate) struct Message {
     pub(crate) subscription: Option<Vec<String>>,
     pub(crate) successful: Option<bool>,
     #[serde(rename = "supportedConnectionTypes")]
+    // TODO: Box<[Box<str>]>
     pub(crate) supported_connection_types: Option<Vec<String>>,
     //pub(crate) timestamp: Option<String>,
     pub(crate) version: Option<String>,
@@ -144,10 +146,10 @@ impl Message {
     }
 }
 
-impl From<Message> for Json<[Message; 1]> {
+impl From<Message> for Json<Box<[Message; 1]>> {
     #[inline(always)]
     fn from(message: Message) -> Self {
-        Json([message])
+        Json(Box::from([message]))
     }
 }
 

@@ -1,7 +1,4 @@
-use crate::{
-    error::HandlerResult, messages::Message, types::Event, CheckExt, CookieJarExt,
-    LongPollingServiceContext, ZERO_CLIENT_ID,
-};
+use crate::{messages::Message, *};
 use axum::{
     extract::State,
     http::{HeaderMap, StatusCode},
@@ -15,16 +12,18 @@ pub(crate) async fn subscribe<AdditionalData, CustomData>(
     Extension(data): Extension<AdditionalData>,
     headers: HeaderMap,
     jar: CookieJar,
-    Json([message]): Json<[Message; 1]>,
-) -> HandlerResult<Json<[Message; 1]>>
+    Json(message): Json<Box<[Message; 1]>>,
+) -> HandlerResult<Json<Box<[Message; 1]>>>
 where
     AdditionalData: Send + Sync + 'static,
     CustomData: Send + Sync + 'static,
 {
+    let [message] = *message;
+
     tracing::info!(
         channel = "/meta/subscribe",
         request_id = message.id.as_deref().unwrap_or("empty"),
-        client_id = %message.client_id.unwrap_or(ZERO_CLIENT_ID),
+        client_id = %message.client_id.as_ref().unwrap_or(&ClientId::zero()),
         "Got subscribe request: `{message:?}`."
     );
 
@@ -43,7 +42,7 @@ where
     let cookie_id = jar.get_cookie_id().ok_or_else(session_unknown)?;
     let client_id = client_id.ok_or_else(session_unknown)?;
     context
-        .check_client(cookie_id, &client_id)
+        .check_client(&cookie_id, &client_id)
         .await
         .ok_or_else(session_unknown)?;
 
@@ -59,7 +58,7 @@ where
             .check(&true, StatusCode::BAD_REQUEST)
     })?;
 
-    context.subscribe(client_id, &subscription).await;
+    context.subscribe(&client_id, &subscription).await;
 
     let _ = context
         .tx
@@ -71,8 +70,8 @@ where
         }))
         .await;
 
-    Ok(Json([Message {
+    Ok(Json(Box::from([Message {
         subscription: Some(subscription),
         ..Message::ok(id, channel)
-    }]))
+    }])))
 }
