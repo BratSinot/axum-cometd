@@ -9,8 +9,10 @@ use std::sync::Arc;
 pub(crate) async fn disconnect<AdditionalData, CustomData>(
     State(context): State<Arc<LongPollingServiceContext<AdditionalData, CustomData>>>,
     jar: CookieJar,
-    Json([message]): Json<[Message; 1]>,
-) -> HandlerResult<Json<[Message; 1]>> {
+    Json(message): Json<Box<[Message; 1]>>,
+) -> HandlerResult<Json<Box<[Message; 1]>>> {
+    let [message] = *message;
+
     tracing::info!(
         channel = "/meta/disconnect",
         request_id = message.id.as_deref().unwrap_or("empty"),
@@ -38,5 +40,5 @@ pub(crate) async fn disconnect<AdditionalData, CustomData>(
 
     context.unsubscribe(client_id).await;
 
-    Ok(Json([Message::ok(id, channel)]))
+    Ok(Json(Box::from([Message::ok(id, channel)])))
 }

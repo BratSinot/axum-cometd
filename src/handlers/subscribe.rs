@@ -15,12 +15,14 @@ pub(crate) async fn subscribe<AdditionalData, CustomData>(
     Extension(data): Extension<AdditionalData>,
     headers: HeaderMap,
     jar: CookieJar,
-    Json([message]): Json<[Message; 1]>,
-) -> HandlerResult<Json<[Message; 1]>>
+    Json(message): Json<Box<[Message; 1]>>,
+) -> HandlerResult<Json<Box<[Message; 1]>>>
 where
     AdditionalData: Send + Sync + 'static,
     CustomData: Send + Sync + 'static,
 {
+    let [message] = *message;
+
     tracing::info!(
         channel = "/meta/subscribe",
         request_id = message.id.as_deref().unwrap_or("empty"),
@@ -71,8 +73,8 @@ where
         }))
         .await;
 
-    Ok(Json([Message {
+    Ok(Json(Box::from([Message {
         subscription: Some(subscription),
         ..Message::ok(id, channel)
-    }]))
+    }])))
 }

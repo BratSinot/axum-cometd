@@ -13,12 +13,14 @@ pub(crate) async fn handshake<AdditionalData, CustomData>(
     Extension(data): Extension<AdditionalData>,
     headers: HeaderMap,
     mut jar: CookieJar,
-    Json([message]): Json<[Message; 1]>,
-) -> HandlerResult<(CookieJar, Json<[Message; 1]>)>
+    Json(message): Json<Box<[Message; 1]>>,
+) -> HandlerResult<(CookieJar, Json<Box<[Message; 1]>>)>
 where
     AdditionalData: Send + Sync + 'static,
     CustomData: Send + Sync + 'static,
 {
+    let [message] = *message;
+
     tracing::info!(
         channel = "/meta/handshake",
         request_id = %message.id.as_deref().unwrap_or("empty"),
@@ -75,7 +77,7 @@ where
 
     Ok((
         jar,
-        Json([Message {
+        Json(Box::from([Message {
             client_id: Some(client_id),
             version: Some("1.0".into()),
             supported_connection_types: Some(vec!["long-polling".into()]),
@@ -84,6 +86,6 @@ where
                 context.consts.interval,
             )),
             ..Message::ok(id, channel)
-        }]),
+        }])),
     ))
 }

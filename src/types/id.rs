@@ -5,6 +5,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 pub(crate) const ZERO_ID: Id = Id([0u32; 5]);
 
+// TODO: Box<[]>
 #[derive(Clone, Copy, Hash, Eq, PartialEq)]
 pub(crate) struct Id([u32; 5]);
 
