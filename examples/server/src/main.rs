@@ -45,13 +45,13 @@ async fn main() {
         while let Some(event) = rx.recv().await {
             match *event {
                 Event::SessionAdded {
-                    ref client_id,
+                    client_id,
                     ref headers,
                     ..
                 } => {
                     tracing::info!("Got new session {client_id}: `{headers:?}.");
                 }
-                Event::SessionRemoved { ref client_id, .. } => {
+                Event::SessionRemoved { client_id, .. } => {
                     tracing::info!("Removed session {client_id}.");
                 }
                 _ => {}

@@ -1,17 +1,14 @@
-use crate::types::Id;
+use crate::types::{Id, ZERO_ID};
 use core::fmt::{Debug, Display, Formatter};
 use serde::{Deserialize, Serialize};
 
+pub(crate) const ZERO_CLIENT_ID: ClientId = ClientId(ZERO_ID);
+
 /// CometD ClientId.
-#[derive(Clone, Hash, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Clone, Copy, Hash, Eq, PartialEq, Deserialize, Serialize)]
 pub struct ClientId(Id);
 
 impl ClientId {
-    #[inline(always)]
-    pub(crate) fn zero() -> Self {
-        Self(Id::zero())
-    }
-
     #[inline(always)]
     pub(crate) fn gen() -> Self {
         Self(Id::gen())

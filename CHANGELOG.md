@@ -4,16 +4,6 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
-## [0.10.0]
-
-### Fixed
-
-### Add
-
-### Change
-
-- Use box instead of stack array.
-
 ## [0.9.1]
 
 ### Fixed

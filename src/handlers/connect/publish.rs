@@ -30,7 +30,7 @@ pub(super) async fn publish_handle<AdditionalData, CustomData>(
             (None, _) => Message::channel_missing(id),
             (channel, None) => Message::session_unknown(id, channel, Some(Advice::handshake())),
             (Some(channel), Some(client_id)) => {
-                if context.check_client(&cookie_id, &client_id).await.is_some() {
+                if context.check_client(cookie_id, &client_id).await.is_some() {
                     match context.send(&channel, data.unwrap_or_default()).await {
                         Ok(()) => {}
                         Err(SendError::Closed) => {

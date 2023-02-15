@@ -1,20 +1,14 @@
 use crate::error::ParseError;
 use core::fmt::{Debug, Display, Formatter};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use std::{
-    sync::Arc,
-    time::{SystemTime, UNIX_EPOCH},
-};
+use std::time::{SystemTime, UNIX_EPOCH};
 
-#[derive(Clone, Hash, Eq, PartialEq)]
-pub(crate) struct Id(Arc<[u32; 5]>);
+pub(crate) const ZERO_ID: Id = Id([0u32; 5]);
+
+#[derive(Clone, Copy, Hash, Eq, PartialEq)]
+pub(crate) struct Id([u32; 5]);
 
 impl Id {
-    #[inline(always)]
-    pub(crate) fn zero() -> Self {
-        Id(Arc::from([0u32; 5]))
-    }
-
     #[inline]
     pub(crate) fn gen() -> Self {
         use rand::Rng;
@@ -27,15 +21,8 @@ impl Id {
         let lo = (timestamp & u128::from(u32::MAX)) as u32;
         let mid = ((timestamp >> 32) & u128::from(u32::MAX)) as u32;
 
-        let mut id = Arc::<[_; 5]>::from([mid, lo, 0, 0, 0]);
-        // SAFETY:
-        //  Arc::get_mut().unwrap_unchecked() -- Arc just created, so counter at 1.
-        //  get_unchecked_mut() -- Arc::<[_; 5]>.
-        unsafe {
-            let mut_id = Arc::get_mut(&mut id).unwrap_unchecked();
-            let unfilled_id_part = mut_id.get_unchecked_mut(2..);
-            rand::thread_rng().fill(unfilled_id_part);
-        }
+        let mut id = [mid, lo, 0, 0, 0];
+        rand::thread_rng().fill(&mut id[2..]);
 
         Self(id)
     }
@@ -58,13 +45,13 @@ impl Id {
                     )
                 };
 
-                Ok(Self(Arc::from([
+                Ok(Self([
                     hex_str_to_u32(p0)?,
                     hex_str_to_u32(p1)?,
                     hex_str_to_u32(p2)?,
                     hex_str_to_u32(p3)?,
                     hex_str_to_u32(p4)?,
-                ])))
+                ]))
             }
             len => Err(ParseError::InvalidLength(len)),
         }
@@ -79,7 +66,7 @@ impl Debug for Id {
 
 impl Display for Id {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        for u32_chunk in self.0.iter() {
+        for u32_chunk in self.0 {
             write!(f, "{u32_chunk:08x}")?;
         }
         Ok(())
@@ -115,13 +102,8 @@ mod tests {
 
     #[test]
     fn test_leading_zero() {
-        let id = Id(Arc::from([
-            0x0FFFFFFF,
-            u32::MAX,
-            u32::MAX,
-            u32::MAX,
-            u32::MAX,
-        ]));
+        let mut id = Id([u32::MAX; 5]);
+        id.0[0] &= 0x0FFFFFFF;
 
         assert_eq!(id.to_string(), "0fffffffffffffffffffffffffffffffffffffff");
 

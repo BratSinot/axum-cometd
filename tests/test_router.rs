@@ -80,6 +80,6 @@ async fn test_event_channel() {
             .unwrap()
     }
 
-    matches!(recv(&mut rx).await.as_ref(), Event::SessionAdded{ client_id, .. } if client_id.to_string() == orig_client_id && context.unsubscribe(client_id.clone()).await == ());
+    matches!(recv(&mut rx).await.as_ref(), Event::SessionAdded{ client_id, .. } if client_id.to_string() == orig_client_id && context.unsubscribe(*client_id).await == ());
     matches!(recv(&mut rx).await.as_ref(), Event::SessionRemoved{ client_id, .. } if client_id.to_string() == orig_client_id);
 }

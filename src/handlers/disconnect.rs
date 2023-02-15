@@ -1,4 +1,7 @@
-use crate::{error::HandlerResult, messages::Message, *};
+use crate::{
+    error::HandlerResult, messages::Message, CheckExt, CookieJarExt, LongPollingServiceContext,
+    ZERO_CLIENT_ID,
+};
 use axum::{extract::State, Json};
 use axum_extra::extract::CookieJar;
 use std::sync::Arc;
@@ -6,14 +9,12 @@ use std::sync::Arc;
 pub(crate) async fn disconnect<AdditionalData, CustomData>(
     State(context): State<Arc<LongPollingServiceContext<AdditionalData, CustomData>>>,
     jar: CookieJar,
-    Json(message): Json<Box<[Message; 1]>>,
-) -> HandlerResult<Json<Box<[Message; 1]>>> {
-    let [message] = *message;
-
+    Json([message]): Json<[Message; 1]>,
+) -> HandlerResult<Json<[Message; 1]>> {
     tracing::info!(
         channel = "/meta/disconnect",
         request_id = message.id.as_deref().unwrap_or("empty"),
-        client_id = %message.client_id.as_ref().unwrap_or(&ClientId::zero()),
+        client_id = %message.client_id.unwrap_or(ZERO_CLIENT_ID),
         "Got disconnect request: `{message:?}`."
     );
 
@@ -31,11 +32,11 @@ pub(crate) async fn disconnect<AdditionalData, CustomData>(
     let cookie_id = jar.get_cookie_id().ok_or_else(session_unknown)?;
     let client_id = client_id.ok_or_else(session_unknown)?;
     context
-        .check_client(&cookie_id, &client_id)
+        .check_client(cookie_id, &client_id)
         .await
         .ok_or_else(session_unknown)?;
 
     context.unsubscribe(client_id).await;
 
-    Ok(Json(Box::from([Message::ok(id, channel)])))
+    Ok(Json([Message::ok(id, channel)]))
 }

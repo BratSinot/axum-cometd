@@ -15,9 +15,8 @@ pub(crate) async fn connect<AdditionalData, CustomData>(
 ) -> HandlerResult<Json<Vec<Message>>> {
     tracing::debug!("Got connect request: `{messages:?}`.");
 
-    let ret = match Box::<[_; 1]>::try_from(messages) {
-        Ok(message) => {
-            let [message] = *message;
+    let ret = match <[_; 1]>::try_from(messages) {
+        Ok([message]) => {
             if message.channel.as_deref() == Some("/meta/connect") {
                 wait_client_message_handle(&context, jar, message).await?
             } else {

@@ -1,6 +1,8 @@
 use crate::{
+    error::HandlerResult,
     messages::{Advice, Message},
-    *,
+    types::{CookieId, Event, BAYEUX_BROWSER},
+    CheckExt, LongPollingServiceContext,
 };
 use axum::{extract::State, http::HeaderMap, Extension, Json};
 use axum_extra::extract::cookie::{Cookie, CookieJar};
@@ -11,14 +13,12 @@ pub(crate) async fn handshake<AdditionalData, CustomData>(
     Extension(data): Extension<AdditionalData>,
     headers: HeaderMap,
     mut jar: CookieJar,
-    Json(message): Json<Box<[Message; 1]>>,
-) -> HandlerResult<(CookieJar, Json<Box<[Message; 1]>>)>
+    Json([message]): Json<[Message; 1]>,
+) -> HandlerResult<(CookieJar, Json<[Message; 1]>)>
 where
     AdditionalData: Send + Sync + 'static,
     CustomData: Send + Sync + 'static,
 {
-    let [message] = *message;
-
     tracing::info!(
         channel = "/meta/handshake",
         request_id = %message.id.as_deref().unwrap_or("empty"),
@@ -53,14 +53,14 @@ where
         cookie_id
     };
 
-    let client_id = context.register(&cookie_id).await.ok_or_else(|| {
+    let client_id = context.register(cookie_id).await.ok_or_else(|| {
         Message::session_unknown(id.clone(), channel.clone(), Some(Advice::handshake()))
     })?;
 
     let _ = context
         .tx
         .broadcast(Arc::new(Event::SessionAdded {
-            client_id: client_id.clone(),
+            client_id,
             headers,
             data,
         }))
@@ -75,7 +75,7 @@ where
 
     Ok((
         jar,
-        Json(Box::from([Message {
+        Json([Message {
             client_id: Some(client_id),
             version: Some("1.0".into()),
             supported_connection_types: Some(vec!["long-polling".into()]),
@@ -84,6 +84,6 @@ where
                 context.consts.interval,
             )),
             ..Message::ok(id, channel)
-        }])),
+        }]),
     ))
 }
