@@ -135,7 +135,7 @@ impl<AdditionalData, CustomData> LongPollingServiceContext<AdditionalData, Custo
             channel: channel.to_owned(),
             msg: json!(message),
         };
-        let wildnames = self.wildnames_cache.fetch_wildnames(channel).await;
+        let wildnames = self.wildnames_cache.fetch_wildnames(channel);
         let read_guard = self.channels_data.read().await;
         for channel in core::iter::once(channel).chain(wildnames.iter().map(String::deref)) {
             if let Some(tx) = read_guard.get(channel).map(Channel::tx) {
@@ -301,9 +301,7 @@ impl<AdditionalData, CustomData> LongPollingServiceContext<AdditionalData, Custo
             },
         );
 
-        self.wildnames_cache
-            .remove_wildnames(removed_channels)
-            .await;
+        self.wildnames_cache.remove_wildnames(removed_channels);
     }
 
     #[inline]
