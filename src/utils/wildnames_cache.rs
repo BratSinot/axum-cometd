@@ -1,12 +1,12 @@
 use crate::{types::ChannelId, utils::get_wild_names};
-use ahash::{AHashMap, AHashSet};
+use ahash::{HashMap, HashSet};
 use std::collections::VecDeque;
 use std::sync::{Arc, PoisonError, RwLock};
 
 #[derive(Debug, Default)]
 pub(crate) struct WildNamesCache {
     // TODO: Replace on Arc<[String]>
-    cache: RwLock<AHashMap<ChannelId, Arc<VecDeque<String>>>>,
+    cache: RwLock<HashMap<ChannelId, Arc<VecDeque<String>>>>,
 }
 
 impl WildNamesCache {
@@ -31,7 +31,7 @@ impl WildNamesCache {
     }
 
     #[inline(always)]
-    pub(crate) fn remove_wildnames(&self, mut names: AHashSet<ChannelId>) {
+    pub(crate) fn remove_wildnames(&self, mut names: HashSet<ChannelId>) {
         self.cache
             .write()
             .unwrap_or_else(PoisonError::into_inner)

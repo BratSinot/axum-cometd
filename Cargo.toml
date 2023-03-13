@@ -1,6 +1,6 @@
 [package]
 name = "axum-cometd"
-version = "0.9.2"
+version = "0.9.3"
 edition = "2021"
 license = "Apache-2.0"
 repository = "https://github.com/BratSinot/axum-cometd"
@@ -20,13 +20,13 @@ members = [
 [dependencies]
 ahash = "0.8.*"
 async-broadcast = "0.5.*"
-axum-extra = { version = "0.5.*", features = ["cookie"] }
+axum-extra = { version = "0.7.*", features = ["cookie"] }
 axum = { version = "0.6.*", default-features = false, features = ["json"] }
 rand = "0.8.*"
 regex = { version = "1.7.*", default-features = false, features = ["std", "perf"] }
 serde = { version = "1.0.*", features = ["derive"] }
 serde_json = "1.0.*"
-serde_with = { version = "2.2.*", default-features = false, features = ["macros"] }
+serde_with = { version = "2.3.*", default-features = false, features = ["macros"] }
 thiserror = "1.0.*"
 tokio = { version = "1", features = ["macros", "sync", "rt", "time"] }
 tracing = "0.1.*"

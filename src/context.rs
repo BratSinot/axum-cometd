@@ -10,7 +10,7 @@ use crate::{
     utils::{ChannelNameValidator, WildNamesCache},
     CometdCustomDataSender, CometdEventReceiver, Event, SendError,
 };
-use ahash::{AHashMap, AHashSet};
+use ahash::{HashMap, HashSet, HashSetExt as _};
 use async_broadcast::{InactiveReceiver, Sender};
 use core::{fmt::Debug, ops::Deref};
 use serde::Serialize;
@@ -27,19 +27,19 @@ pub struct LongPollingServiceContext<AdditionalData, CustomData> {
     pub(crate) wildnames_cache: WildNamesCache,
     pub(crate) channel_name_validator: ChannelNameValidator,
     pub(crate) consts: LongPollingServiceContextConsts,
-    pub(crate) channels_data: RwLock<AHashMap<ChannelId, Channel>>,
-    client_id_senders: Arc<RwLock<AHashMap<ClientId, ClientSender>>>,
+    pub(crate) channels_data: RwLock<HashMap<ChannelId, Channel>>,
+    client_id_senders: Arc<RwLock<HashMap<ClientId, ClientSender>>>,
 }
 
 #[derive(Debug)]
 pub(crate) struct Channel {
-    client_ids: AHashSet<ClientId>,
+    client_ids: HashSet<ClientId>,
     tx: mpsc::Sender<SubscriptionMessage>,
 }
 
 impl Channel {
     #[inline(always)]
-    const fn client_ids(&self) -> &AHashSet<ClientId> {
+    const fn client_ids(&self) -> &HashSet<ClientId> {
         &self.client_ids
     }
 
@@ -272,7 +272,7 @@ impl<AdditionalData, CustomData> LongPollingServiceContext<AdditionalData, Custo
     async fn remove_client_id_from_subscriptions(&self, client_id: &ClientId) {
         // TODO: drain_filter: https://github.com/rust-lang/rust/issues/59618
         // TODO: Replace on LinkedList?
-        let mut removed_channels = AHashSet::new();
+        let mut removed_channels = HashSet::new();
 
         self.channels_data.write().await.retain(
             |channel,

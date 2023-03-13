@@ -1,5 +1,5 @@
-use crate::{ResponseExt, TEST_CLIENT_ID};
-use ahash::AHashMap;
+use crate::{ResponseExt as _, TEST_CLIENT_ID};
+use ahash::HashMap;
 use axum::{
     http::{
         header::{CONTENT_TYPE, COOKIE},
@@ -169,7 +169,7 @@ impl ClientMock {
 
                 ((id, channel), data)
             })
-            .unzip::<_, _, AHashMap<_, _>, Vec<_>>();
+            .unzip::<_, _, HashMap<_, _>, Vec<_>>();
 
         let response = self
             .send_request(&self.connect_endpoint, JsonValue::from(body))
