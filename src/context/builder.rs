@@ -1,5 +1,5 @@
 use crate::{consts::*, LongPollingServiceContext};
-use ahash::AHashMap;
+use ahash::{HashMap, HashMapExt as _};
 use async_broadcast::broadcast;
 use core::time::Duration;
 use std::sync::Arc;
@@ -83,8 +83,8 @@ impl LongPollingServiceContextBuilder {
             wildnames_cache: Default::default(),
             channel_name_validator: Default::default(),
             consts,
-            channels_data: RwLock::new(AHashMap::with_capacity(subscriptions_storage_capacity)),
-            client_id_senders: Arc::new(RwLock::new(AHashMap::with_capacity(
+            channels_data: RwLock::new(HashMap::with_capacity(subscriptions_storage_capacity)),
+            client_id_senders: Arc::new(RwLock::new(HashMap::with_capacity(
                 client_ids_storage_capacity,
             ))),
         })

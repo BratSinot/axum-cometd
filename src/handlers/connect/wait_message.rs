@@ -2,7 +2,7 @@ use crate::{
     error::HandlerResult,
     messages::{Advice, Message, SubscriptionMessage},
     types::ClientReceiverError,
-    CookieJarExt, LongPollingServiceContext,
+    CookieJarExt as _, LongPollingServiceContext,
 };
 use axum::http::StatusCode;
 use axum_extra::extract::CookieJar;

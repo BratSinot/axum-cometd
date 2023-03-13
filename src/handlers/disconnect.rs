@@ -1,6 +1,6 @@
 use crate::{
-    error::HandlerResult, messages::Message, CheckExt, CookieJarExt, LongPollingServiceContext,
-    ZERO_CLIENT_ID,
+    error::HandlerResult, messages::Message, CheckExt as _, CookieJarExt as _,
+    LongPollingServiceContext, ZERO_CLIENT_ID,
 };
 use axum::{extract::State, Json};
 use axum_extra::extract::CookieJar;

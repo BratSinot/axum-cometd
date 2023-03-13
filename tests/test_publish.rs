@@ -6,7 +6,7 @@ use std::sync::{
     atomic::{AtomicU64, Ordering},
     Arc,
 };
-use test_common::{ClientMock, ResponseExt, TEST_CLIENT_ID};
+use test_common::{ClientMock, ResponseExt as _, TEST_CLIENT_ID};
 use tokio::time::timeout;
 
 const TIMEOUT: Duration = Duration::from_secs(1);

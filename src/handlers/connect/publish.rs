@@ -1,6 +1,6 @@
 use crate::{
     messages::{Advice, Message},
-    CheckExt, CookieJarExt, HandlerResult, LongPollingServiceContext, SendError,
+    CheckExt as _, CookieJarExt as _, HandlerResult, LongPollingServiceContext, SendError,
 };
 use axum::http::StatusCode;
 use axum_extra::extract::CookieJar;

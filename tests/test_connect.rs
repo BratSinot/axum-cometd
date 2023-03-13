@@ -3,7 +3,7 @@ use axum_cometd::{LongPollingServiceContextBuilder, RouterBuilder};
 use core::time::Duration;
 use serde_json::json;
 use std::sync::Arc;
-use test_common::{ClientMock, ResponseExt, TEST_CLIENT_ID};
+use test_common::{ClientMock, ResponseExt as _, TEST_CLIENT_ID};
 use tokio::join;
 
 const TIMEOUT: Duration = Duration::from_secs(1);
